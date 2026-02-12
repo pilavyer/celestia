@@ -73,6 +73,69 @@ export function calculateAspects(bodies) {
 }
 
 /**
+ * İki farklı harita arasındaki aspektleri hesapla (cross-chart / synastry aspektleri).
+ * Dikdörtgen döngü: her A gezegeni × her B gezegeni.
+ *
+ * @param {Array} bodiesA - Kişi 1'in gök cisimleri
+ * @param {Array} bodiesB - Kişi 2'nin gök cisimleri
+ * @returns {Array} Cross-aspekt listesi
+ */
+export function calculateCrossAspects(bodiesA, bodiesB, { orbScale = 1.0 } = {}) {
+  const aspects = [];
+
+  for (const bodyA of bodiesA) {
+    for (const bodyB of bodiesB) {
+      // İki boylam arasındaki açı (0-180°)
+      let diff = Math.abs(bodyA.longitude - bodyB.longitude);
+      if (diff > 180) diff = 360 - diff;
+
+      for (const aspect of ASPECTS) {
+        // orbScale uygula (transit için 0.5, synastry için 1.0)
+        let effectiveOrb = aspect.orb * orbScale;
+        const luminaries = ['Sun', 'Moon'];
+        if (luminaries.includes(bodyA.name) || luminaries.includes(bodyB.name)) {
+          effectiveOrb *= 1.25;
+        }
+
+        // ASC/MC aspektlerinde orb'u biraz daralt
+        const angles = ['Ascendant', 'Midheaven'];
+        if (angles.includes(bodyA.name) || angles.includes(bodyB.name)) {
+          effectiveOrb *= 0.75;
+        }
+
+        const deviation = Math.abs(diff - aspect.angle);
+
+        if (deviation <= effectiveOrb) {
+          const isApplying = determineApplying(bodyA, bodyB, aspect.angle);
+
+          aspects.push({
+            planet1: bodyA.name,
+            planet1Tr: bodyA.trName,
+            planet2: bodyB.name,
+            planet2Tr: bodyB.trName,
+            type: aspect.name,
+            typeTr: aspect.trName,
+            symbol: aspect.symbol,
+            exactAngle: aspect.angle,
+            actualAngle: roundTo(diff, 2),
+            orb: roundTo(deviation, 2),
+            maxOrb: roundTo(effectiveOrb, 2),
+            isApplying,
+            strength: calculateAspectStrength(deviation, effectiveOrb),
+          });
+
+          // Her çift için sadece bir aspekt (en dar orb'lu)
+          break;
+        }
+      }
+    }
+  }
+
+  // Orb'a göre sırala (en güçlü aspektler önce)
+  return aspects.sort((a, b) => a.orb - b.orb);
+}
+
+/**
  * Aspektin yaklaşan mı (applying) uzaklaşan mı (separating) olduğunu belirle.
  * Daha hızlı gezegen yavaş gezegene doğru hareket ediyorsa = applying
  */
@@ -116,6 +179,6 @@ function calculateAspectStrength(deviation, maxOrb) {
   return Math.max(0, Math.min(100, strength));
 }
 
-function roundTo(num, decimals) {
+export function roundTo(num, decimals) {
   return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
 }
