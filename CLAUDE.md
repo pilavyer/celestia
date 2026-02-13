@@ -41,6 +41,13 @@ Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfF
 ### `src/constants.js`
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, and modalities.
 
+### `docs/`
+- `calestia_doc.pdf` — Project documentation
+- `MIGRATION_GUIDE_ASTROAK.md` — Guide for embedding Celestia into AstroAK
+
+### `CHANGELOG.md`
+Version history in [Keep a Changelog](https://keepachangelog.com) format. Update when releasing new versions.
+
 ## Critical Rules
 
 ### Julian Day: ET vs UT

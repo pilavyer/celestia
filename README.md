@@ -64,6 +64,62 @@ curl -X POST http://localhost:3000/api/natal-chart \
 
 **Response:** Planet positions (sign, degree, house, dignity, retrograde), house cusps, aspects with strength, moon phase, Part of Fortune, element/modality distribution, hemisphere emphasis, stelliums, metadata.
 
+<details>
+<summary>Example response (abbreviated)</summary>
+
+```json
+{
+  "input": {
+    "localTime": "1990-07-15T14:30",
+    "timezone": "Europe/Istanbul",
+    "utcTime": "1990-07-15T11:30:00.000Z",
+    "coordinates": { "latitude": 41.0082, "longitude": 28.9784 },
+    "offsetHours": 3,
+    "isDST": true
+  },
+  "planets": [
+    {
+      "name": "Sun", "trName": "Güneş",
+      "longitude": 112.726913, "sign": "Cancer",
+      "degree": 22, "minute": 43, "second": 37,
+      "isRetrograde": false, "dignity": "peregrine", "house": 9,
+      "formattedPosition": "22°43'37\" Cancer"
+    }
+  ],
+  "houses": {
+    "system": "P", "systemName": "Placidus",
+    "cusps": [
+      { "house": 1, "cusp": 215.037781, "sign": "Scorpio", "degree": 5, "minute": 2 }
+    ],
+    "ascendant": { "longitude": 215.037781, "sign": "Scorpio", "degree": 5, "minute": 2 },
+    "midheaven": { "longitude": 130.070622, "sign": "Leo", "degree": 10, "minute": 4 }
+  },
+  "aspects": [
+    {
+      "planet1": "Sun", "planet2": "Jupiter",
+      "type": "Conjunction", "symbol": "☌",
+      "actualAngle": 0.18, "orb": 0.18, "strength": 98,
+      "isApplying": false
+    }
+  ],
+  "analysis": {
+    "sunSign": "Cancer", "moonSign": "Aries", "risingSign": "Scorpio",
+    "isDayChart": true,
+    "moonPhase": { "phase": "Last Quarter", "phaseTr": "Son Dördün" },
+    "partOfFortune": { "sign": "Leo", "degree": 5, "minute": 17 },
+    "elements": { "Fire": 1, "Earth": 3, "Air": 1, "Water": 5, "dominant": "Water" },
+    "modalities": { "Cardinal": 5, "Fixed": 2, "Mutable": 3, "dominant": "Cardinal" },
+    "stelliums": [{ "sign": "Capricorn", "planets": ["Saturn","Uranus","Neptune"], "count": 3 }]
+  },
+  "meta": {
+    "julianDayET": 2448090.97916667,
+    "engine": "sweph (Swiss Ephemeris Node.js binding)",
+    "version": "2.0.0"
+  }
+}
+```
+</details>
+
 ---
 
 ### `POST /api/synastry`
@@ -82,6 +138,59 @@ Calculate synastry between two people: individual natal charts, cross-aspects, h
 Each person object has the same fields as the natal-chart endpoint.
 
 **Response:** Both natal charts (`person1`, `person2`), `synastry` (cross-aspects, house overlay in both directions), `composite` (midpoint planets, houses, aspects, element/modality analysis).
+
+<details>
+<summary>Example response (abbreviated)</summary>
+
+```json
+{
+  "person1": {
+    "input": { "localTime": "1998-11-25T10:17", "timezone": "Europe/Istanbul" },
+    "planets": [ { "name": "Sun", "sign": "Sagittarius", "house": 10 } ],
+    "houses": { "system": "P", "ascendant": { "sign": "Capricorn" } },
+    "aspects": [],
+    "analysis": { "sunSign": "Sagittarius", "moonSign": "Leo" }
+  },
+  "person2": {
+    "input": { "localTime": "2000-03-15T14:30", "timezone": "Europe/Istanbul" },
+    "planets": [ { "name": "Sun", "sign": "Pisces", "house": 8 } ],
+    "houses": { "system": "P", "ascendant": { "sign": "Leo" } },
+    "aspects": [],
+    "analysis": { "sunSign": "Pisces", "moonSign": "Capricorn" }
+  },
+  "synastry": {
+    "crossAspects": [
+      {
+        "planet1": "Sun", "planet2": "Mercury",
+        "type": "Square", "symbol": "□",
+        "orb": 0.05, "strength": 99, "isApplying": false
+      }
+    ],
+    "houseOverlay": {
+      "person1InPerson2Houses": [
+        { "planet": "Sun", "sign": "Sagittarius", "house": 4 }
+      ],
+      "person2InPerson1Houses": [
+        { "planet": "Sun", "sign": "Pisces", "house": 2 }
+      ]
+    }
+  },
+  "composite": {
+    "planets": [
+      { "name": "Sun", "sign": "Aquarius", "longitude": 299.04, "house": 1 }
+    ],
+    "houses": {
+      "ascendant": { "sign": "Scorpio" },
+      "midheaven": { "sign": "Virgo" }
+    },
+    "aspects": [],
+    "analysis": {
+      "elements": { "Fire": 2, "Earth": 3, "Air": 2, "Water": 3, "dominant": "Earth" }
+    }
+  }
+}
+```
+</details>
 
 ---
 
@@ -111,21 +220,95 @@ curl -X POST http://localhost:3000/api/transits \
 
 **Response:** `allTransits` (deduplicated), `todayTransits`, `weekTransits`, `weeklyWithTiming`, `importantTransits` (top N by strength), `allEvents` (full event list with start/exact/end times), `lunar` (moon metrics), `retrogrades`, metadata.
 
+<details>
+<summary>Example response (abbreviated)</summary>
+
+```json
+{
+  "success": true,
+  "monthStartDate": "12-2-2026",
+  "monthEndDate": "14-3-2026",
+  "periodDays": 30,
+  "ascendant": "Capricorn",
+  "moonPhase": "Waning Crescent",
+  "retrogrades": [
+    { "planet": "Mars", "planetTr": "Mars", "sign": "Cancer" }
+  ],
+  "allTransits": [
+    {
+      "transitPlanet": "Sun", "transitPlanetTr": "Güneş",
+      "natalPlanet": "Mars", "natalPlanetTr": "Mars",
+      "type": "Quincunx", "symbol": "⚻",
+      "orb": 0.0, "maxOrb": 1.56, "strength": 100
+    }
+  ],
+  "importantTransits": [
+    {
+      "transitPlanet": "Mars", "natalPlanet": "Moon",
+      "type": "Conjunction", "symbol": "☌",
+      "orb": 0.001, "strength": 100,
+      "startTime": "2026-02-11T00:01:12.000Z",
+      "exactTime": "2026-02-11T00:01:12.000Z",
+      "endTime": "2026-02-15T00:01:09.000Z"
+    }
+  ],
+  "lunar": {
+    "moonSign": "Capricorn", "moonSignTr": "Oğlak",
+    "moonPhase": "Waning Crescent", "moonPhaseTr": "Hilal (Küçülen)",
+    "moonIllumination": 13.5,
+    "moonDay": 27, "moonAgeInDays": 26,
+    "isSuperMoon": false
+  },
+  "meta": {
+    "engine": "Celestia (Swiss Ephemeris)",
+    "transitOrbScale": 0.5
+  }
+}
+```
+</details>
+
 ---
 
 ### `GET /api/house-systems`
 
 List all supported house systems with descriptions.
 
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "P": { "name": "Placidus", "description": "En yaygın Batı sistemi (varsayılan)" },
+  "K": { "name": "Koch", "description": "Placidus'a benzer, bazı Avrupa astrologları tercih eder" },
+  "W": { "name": "Whole Sign", "description": "En eski sistem, Hellenistik astroloji. Tüm enlemlerde çalışır" },
+  "E": { "name": "Equal", "description": "Her ev 30°, ASC'den başlar" },
+  "B": { "name": "Alcabitius", "description": "Orta Çağ Arap astrolojisi" },
+  "R": { "name": "Regiomontanus", "description": "Horary astrolojide tercih edilir" },
+  "O": { "name": "Porphyry", "description": "En basit quadrant sistemi" },
+  "C": { "name": "Campanus", "description": "Mekan bazlı bölünme" }
+}
+```
+</details>
+
 ### `GET /health`
 
-Health check. Returns `{ status, engine, version }`.
+Health check.
+
+```json
+{ "status": "ok", "engine": "celestia", "version": "2.0.0" }
+```
 
 ## Project Structure
 
 ```
 celestia/
-├── ephe/               # Swiss Ephemeris data files (1800-2400 AD)
+├── docs/
+│   ├── calestia_doc.pdf              # Project documentation
+│   └── MIGRATION_GUIDE_ASTROAK.md    # AstroAK embedding guide
+├── ephe/                              # Swiss Ephemeris data files
+│   ├── seas_18.se1                    # Asteroid data (1800-2400 AD)
+│   ├── semo_18.se1                    # Moon data (1800-2400 AD)
+│   └── sepl_18.se1                    # Planet data (1800-2400 AD)
 ├── src/
 │   ├── calculator.js   # Natal chart calculation engine
 │   ├── synastry.js     # Synastry: cross-aspects, house overlay, composite
@@ -135,8 +318,12 @@ celestia/
 │   ├── timezone.js     # IANA timezone to UTC conversion (Luxon)
 │   ├── utils.js        # Longitude→sign, moon phase, Part of Fortune, etc.
 │   └── constants.js    # Celestial bodies, aspects, signs, house systems
-├── server.js           # Express REST API (5 endpoints)
-├── test.js             # Test suite (13 tests)
+├── .editorconfig        # Editor settings (2-space indent, UTF-8, LF)
+├── CHANGELOG.md         # Version history
+├── CLAUDE.md            # AI developer guide
+├── LICENSE              # AGPL-3.0
+├── server.js            # Express REST API (5 endpoints)
+├── test.js              # Test suite (13 tests)
 └── package.json
 ```
 

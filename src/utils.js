@@ -169,6 +169,6 @@ export function findPlanetInHouse(planetLon, cusps) {
   return 1; // Fallback (olmamalı ama güvenlik için)
 }
 
-function roundTo(num, decimals) {
+export function roundTo(num, decimals) {
   return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
 }

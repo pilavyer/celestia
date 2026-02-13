@@ -1,11 +1,12 @@
 // src/synastry.js
 import { calculateNatalChart } from './calculator.js';
-import { calculateAspects, calculateCrossAspects, roundTo } from './aspects.js';
+import { calculateAspects, calculateCrossAspects } from './aspects.js';
 import {
   longitudeToSign,
   findPlanetInHouse,
   getElementDistribution,
   getModalityDistribution,
+  roundTo,
 } from './utils.js';
 import { getDignity } from './dignities.js';
 

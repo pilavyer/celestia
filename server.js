@@ -1,10 +1,14 @@
 // server.js
 import express from 'express';
 import cors from 'cors';
+import { createRequire } from 'module';
 import { calculateNatalChart } from './src/calculator.js';
 import { calculateSynastry } from './src/synastry.js';
 import { calculateTransits } from './src/transit.js';
 import { HOUSE_SYSTEMS } from './src/constants.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('./package.json');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +18,7 @@ app.use(express.json());
 
 // ========== SAĞLIK KONTROLÜ ==========
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', engine: 'celestia', version: '1.0.0' });
+  res.json({ status: 'ok', engine: 'celestia', version });
 });
 
 // ========== DOĞUM HARİTASI HESAPLA ==========

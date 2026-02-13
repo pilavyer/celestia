@@ -1,5 +1,6 @@
 // src/aspects.js
 import { ASPECTS } from './constants.js';
+import { roundTo } from './utils.js';
 
 /**
  * Tüm gök cisimleri arasındaki aspektleri hesapla.
@@ -179,6 +180,3 @@ function calculateAspectStrength(deviation, maxOrb) {
   return Math.max(0, Math.min(100, strength));
 }
 
-export function roundTo(num, decimals) {
-  return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
-}

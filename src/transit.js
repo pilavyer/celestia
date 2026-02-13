@@ -4,8 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { CELESTIAL_BODIES, ASPECTS } from './constants.js';
 import { calculateNatalChart } from './calculator.js';
-import { calculateCrossAspects, roundTo } from './aspects.js';
-import { longitudeToSign, determineMoonPhase } from './utils.js';
+import { calculateCrossAspects } from './aspects.js';
+import { longitudeToSign, determineMoonPhase, roundTo } from './utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

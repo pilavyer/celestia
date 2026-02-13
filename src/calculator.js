@@ -2,6 +2,7 @@
 import * as swe from 'sweph';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { CELESTIAL_BODIES, SIGNS, HOUSE_SYSTEMS } from './constants.js';
 import { birthTimeToUTC } from './timezone.js';
 import { calculateAspects } from './aspects.js';
@@ -14,7 +15,11 @@ import {
   getModalityDistribution,
   determineHemisphereEmphasis,
   findPlanetInHouse,
+  roundTo,
 } from './utils.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 // __dirname ES module equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -333,17 +338,13 @@ export function calculateNatalChart({
       deltaT: roundTo((jd_et - jd_ut) * 86400, 2), // saniye cinsinden
       ephemerisMode: planetsWithHouses.some(p => p.usedMoshierFallback) ? 'Moshier (fallback)' : 'Swiss Ephemeris',
       engine: 'sweph (Swiss Ephemeris Node.js binding)',
-      version: '1.0.0',
+      version,
       warnings,
     },
   };
 }
 
 // ========== YARDIMCI FONKSİYONLAR ==========
-
-function roundTo(num, decimals) {
-  return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
-}
 
 function isAboveHorizon(planetLon, ascLon) {
   const desc = (ascLon + 180) % 360;
