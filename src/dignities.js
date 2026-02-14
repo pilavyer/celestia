@@ -1,5 +1,7 @@
 // src/dignities.js
 
+import { SIGN_RULERS } from './constants.js';
+
 /**
  * Geleneksel gezegen dignite (onur/düşüş) tablosu.
  * Domicile = Gezegen kendi burcunda (en güçlü)
@@ -51,4 +53,14 @@ export function getDignityTr(dignity) {
     peregrine: 'Peregrine (Nötr)',
   };
   return map[dignity] || null;
+}
+
+/**
+ * Burcun modern yönetici gezegenini döndürür.
+ *
+ * @param {string} sign - Burç adı (İngilizce)
+ * @returns {string|null} Gezegen adı veya null
+ */
+export function getSignRuler(sign) {
+  return SIGN_RULERS[sign] || null;
 }

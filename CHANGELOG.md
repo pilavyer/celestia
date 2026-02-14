@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-14
+
+### Added
+- **Medical astrology module** (`src/medical.js`): 7 new features for health-oriented chart analysis
+- **Body area mapping**: each planet enriched with `bodyAreas` combining planet and sign body rulerships
+- **Combustion status**: cazimi (≤0.283°), combust (≤8.5°), under the beams (≤17°), or free for each planet relative to the Sun
+- **Critical degrees**: cardinal (0°, 13°, 26°), fixed (9°, 21°), mutable (4°, 17°) and anaretic (29°) detection
+- **Speed classification**: stationary, slow, average, or fast based on planet's speed ratio to its average
+- **Annual profection**: active house, year lord, and year lord's natal position based on current age
+- **Medical Arabic parts**: 6 health-related lots (Illness, Surgery, Healing, Vitality, Crisis, Death) with house placement
+- **Antiscia & contra-antiscia**: mirror points on Cancer-Capricorn and Aries-Libra axes with hidden connection detection
+- `healthDomain` field added to each house cusp (e.g., house 6 → "acute illness, daily health and hygiene")
+- `analysis.medicalAstrology` section in natal chart output containing profection, Arabic parts, and antiscia
+- 7 new tests (Tests 14-20): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia
+
 ## [2.0.0] - 2026-02-12
 
 ### Added
@@ -41,5 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiss Ephemeris data files covering 1800–2400 AD (`ephe/`)
 - 5 natal chart tests (Tests 1-5)
 
+[2.1.0]: https://github.com/pilavyer/celestia/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/pilavyer/celestia/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/pilavyer/celestia/releases/tag/v1.0.0

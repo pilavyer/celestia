@@ -6,7 +6,7 @@ import { createRequire } from 'module';
 import { CELESTIAL_BODIES, SIGNS, HOUSE_SYSTEMS } from './constants.js';
 import { birthTimeToUTC } from './timezone.js';
 import { calculateAspects } from './aspects.js';
-import { getDignity } from './dignities.js';
+import { getDignity, getSignRuler } from './dignities.js';
 import {
   longitudeToSign,
   determineMoonPhase,
@@ -17,6 +17,11 @@ import {
   findPlanetInHouse,
   roundTo,
 } from './utils.js';
+import {
+  getBodyAreas, getCombustionStatus, getCriticalDegree,
+  getSpeedClassification, calculateProfection,
+  calculateMedicalArabicParts, calculateAntiscia, HOUSE_HEALTH_MAP,
+} from './medical.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -220,6 +225,7 @@ export function calculateNatalChart({
       degree: cuspData.degree,
       minute: cuspData.minute,
       formattedCusp: `${cuspData.degree}°${String(cuspData.minute).padStart(2, '0')}' ${cuspData.sign}`,
+      healthDomain: HOUSE_HEALTH_MAP[i],
     });
   }
 
@@ -228,11 +234,21 @@ export function calculateNatalChart({
   const mcData = longitudeToSign(midheaven);
   const vtxData = longitudeToSign(vertex);
 
-  // Her gezegenin hangi evde olduğunu bul
-  const planetsWithHouses = planets.map(planet => ({
-    ...planet,
-    house: findPlanetInHouse(planet.longitude, cusps),
-  }));
+  // Her gezegenin hangi evde olduğunu bul + tıbbi astroloji verileri
+  const sunPlanet = planets.find(p => p.name === 'Sun');
+  const sunLon = sunPlanet ? sunPlanet.longitude : null;
+
+  const planetsWithHouses = planets.map(planet => {
+    const house = findPlanetInHouse(planet.longitude, cusps);
+    return {
+      ...planet,
+      house,
+      bodyAreas: getBodyAreas(planet.name, planet.sign),
+      combustion: sunLon !== null ? getCombustionStatus(planet.name, planet.longitude, sunLon) : null,
+      criticalDegree: getCriticalDegree(planet.sign, planet.degree),
+      speedAnalysis: getSpeedClassification(planet.name, planet.speed),
+    };
+  });
 
   // ========== ASPEKTLER ==========
 
@@ -269,6 +285,43 @@ export function calculateNatalChart({
 
   // Stellium tespiti (aynı burçta 3+ gezegen)
   const stelliums = findStelliums(planetsWithHouses);
+
+  // Harita lordu (yükselen burcun yöneticisi)
+  const chartRulerName = getSignRuler(ascData.sign);
+  const chartRulerPlanet = planetsWithHouses.find(p => p.name === chartRulerName);
+  const chartRuler = chartRulerPlanet ? {
+    name: chartRulerPlanet.name,
+    trName: chartRulerPlanet.trName,
+    sign: chartRulerPlanet.sign,
+    house: chartRulerPlanet.house,
+    longitude: chartRulerPlanet.longitude,
+    isRetrograde: chartRulerPlanet.isRetrograde,
+    dignity: chartRulerPlanet.dignity,
+    formattedPosition: chartRulerPlanet.formattedPosition,
+  } : null;
+
+  // Ev lordları (her evin cusp burcunun yöneticisi + konumu)
+  const houseRulers = houses.map(h => {
+    const rulerName = getSignRuler(h.sign);
+    const rulerPlanet = planetsWithHouses.find(p => p.name === rulerName);
+    return {
+      house: h.house,
+      cuspSign: h.sign,
+      rulingPlanet: rulerName,
+      rulingPlanetTr: rulerPlanet?.trName || null,
+      rulerSign: rulerPlanet?.sign || null,
+      rulerHouse: rulerPlanet?.house || null,
+      rulerLongitude: rulerPlanet?.longitude || null,
+      rulerIsRetrograde: rulerPlanet?.isRetrograde || false,
+      rulerDignity: rulerPlanet?.dignity || null,
+    };
+  });
+
+  // ========== TIBBI ASTROLOJİ ==========
+
+  const profection = calculateProfection(year, month, day, houses, planetsWithHouses);
+  const medicalArabicParts = calculateMedicalArabicParts(ascendant, planetsWithHouses, cusps);
+  const antiscia = calculateAntiscia(planetsWithHouses);
 
   // ========== SONUÇ ==========
 
@@ -329,6 +382,13 @@ export function calculateNatalChart({
       modalities: modalityDist,
       hemispheres: hemisphereEmphasis,
       stelliums,
+      chartRuler,
+      houseRulers,
+      medicalAstrology: {
+        profection,
+        arabicParts: medicalArabicParts,
+        antiscia,
+      },
     },
 
     meta: {

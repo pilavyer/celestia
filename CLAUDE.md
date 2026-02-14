@@ -38,6 +38,9 @@ Converts local birth time to UTC using Luxon. Handles DST spring-forward gaps (t
 ### `src/utils.js`
 Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfFortune()`, element/modality distribution, hemisphere emphasis, `findPlanetInHouse()`.
 
+### `src/medical.js`
+Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, and medical Arabic parts. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections).
+
 ### `src/constants.js`
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, and modalities.
 
@@ -77,16 +80,17 @@ Version history in [Keep a Changelog](https://keepachangelog.com) format. Update
 ```bash
 npm start        # Start production server (port 3000)
 npm run dev      # Start with nodemon (auto-reload)
-npm test         # Run 13-test suite (natal, synastry, transit, lunar)
+npm test         # Run 20-test suite (natal, synastry, transit, lunar, medical)
 npm run compare  # Run compare.js (dev utility, not committed)
 ```
 
 ## Tests
 
-`test.js` contains 13 tests:
+`test.js` contains 20 tests:
 - Tests 1-5: Natal chart (Istanbul, DST, New York, high latitude, full output)
 - Tests 6-8: Synastry (basic, house overlay, composite midpoint)
 - Tests 9-13: Transit (response shape, orb validation, event timing, lunar metrics, aspect angle validation)
+- Tests 14-20: Medical astrology (body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia)
 
 Run with `node test.js` — all tests should print "BASARILI" (success).
 

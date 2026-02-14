@@ -67,3 +67,19 @@ export const MODALITIES = {
   Fixed:    ['Taurus', 'Leo', 'Scorpio', 'Aquarius'],
   Mutable:  ['Gemini', 'Virgo', 'Sagittarius', 'Pisces'],
 };
+
+// Modern burç yöneticileri (sign → ruling planet)
+export const SIGN_RULERS = {
+  Aries: 'Mars',
+  Taurus: 'Venus',
+  Gemini: 'Mercury',
+  Cancer: 'Moon',
+  Leo: 'Sun',
+  Virgo: 'Mercury',
+  Libra: 'Venus',
+  Scorpio: 'Pluto',
+  Sagittarius: 'Jupiter',
+  Capricorn: 'Saturn',
+  Aquarius: 'Uranus',
+  Pisces: 'Neptune',
+};

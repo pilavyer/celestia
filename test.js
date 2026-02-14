@@ -137,6 +137,66 @@ try {
     });
   }
 
+  // Chart Ruler dogrulama (Yukselen Scorpio → ruler Pluto)
+  console.log('\nChart Ruler (Harita Lordu):');
+  const cr = fullChart.analysis.chartRuler;
+  if (cr) {
+    console.log(`  ${cr.trName} (${cr.name}) — ${cr.formattedPosition}, Ev ${cr.house}`);
+    if (cr.name === 'Pluto') {
+      console.log('BASARILI: Scorpio yukselen icin harita lordu Pluto');
+    } else {
+      console.error(`HATA: Scorpio yukselen icin harita lordu Pluto olmali, ${cr.name} geldi!`);
+    }
+    if (cr.house === 1) {
+      console.log('BASARILI: Pluto ev 1\'de');
+    } else {
+      console.error(`HATA: Pluto ev 1'de bekleniyor, ev ${cr.house} geldi!`);
+    }
+  } else {
+    console.error('HATA: chartRuler null!');
+  }
+
+  // House Rulers dogrulama (12 ev lordu)
+  console.log('\nEv Lordlari:');
+  const hr = fullChart.analysis.houseRulers;
+  if (hr && hr.length === 12) {
+    console.log('BASARILI: 12 ev lordu mevcut');
+  } else {
+    console.error(`HATA: 12 ev lordu bekleniyor, ${hr ? hr.length : 0} geldi!`);
+  }
+
+  let houseRulersValid = true;
+  if (hr) {
+    for (const ruler of hr) {
+      if (ruler.rulerHouse < 1 || ruler.rulerHouse > 12) {
+        console.error(`HATA: Ev ${ruler.house} lordunun evi gecersiz: ${ruler.rulerHouse}`);
+        houseRulersValid = false;
+        break;
+      }
+    }
+  }
+  if (houseRulersValid) {
+    console.log('BASARILI: Tum ev lordlarinin evi 1-12 arasinda');
+  }
+
+  // Tutarlilik: Ev 1 cusp sign = yukselen burcu → ev 1 lordu = harita lordu
+  if (hr && cr) {
+    const house1Ruler = hr.find(h => h.house === 1);
+    if (house1Ruler.rulingPlanet === cr.name) {
+      console.log('BASARILI: Ev 1 lordu = harita lordu (tutarli)');
+    } else {
+      console.error(`HATA: Ev 1 lordu (${house1Ruler.rulingPlanet}) != harita lordu (${cr.name})`);
+    }
+  }
+
+  // Ilk 3 ev lordu ornegi
+  if (hr) {
+    console.log('\nIlk 3 ev lordu:');
+    hr.slice(0, 3).forEach(r => {
+      console.log(`  Ev ${String(r.house).padStart(2)}: cusp ${r.cuspSign.padEnd(12)} -> lord ${r.rulingPlanet.padEnd(8)} (${r.rulingPlanetTr}) — ${r.rulerSign} Ev ${r.rulerHouse}`);
+    });
+  }
+
 } catch (e) {
   console.error('HATA:', e.message);
 }
@@ -576,6 +636,347 @@ try {
 
 } catch (e) {
   console.error('HATA:', e.message);
+}
+
+// ========== TIBBI ASTROLOJİ TESTLERİ (14-20) ==========
+// Test verisi: Istanbul, 15 Temmuz 1990, 14:30 (Test 5 ile aynı)
+
+let medChart;
+try {
+  medChart = calculateNatalChart({
+    year: 1990, month: 7, day: 15, hour: 14, minute: 30,
+    latitude: 41.0082, longitude: 28.9784,
+    timezone: 'Europe/Istanbul',
+  });
+} catch (e) {
+  console.error('HATA: Tibbi astroloji test haritasi olusturulamadi:', e.message);
+}
+
+// ========== TEST 14: Body Areas ==========
+console.log('\nTEST 14: Body Areas — gezegen bodyAreas + ev healthDomain');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test14Valid = true;
+
+    // Her ana gezegende bodyAreas array olmali
+    const mainPlanetNames = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+    for (const name of mainPlanetNames) {
+      const planet = medChart.planets.find(p => p.name === name);
+      if (!planet) {
+        console.error(`HATA: ${name} bulunamadi!`);
+        test14Valid = false;
+        break;
+      }
+      if (!Array.isArray(planet.bodyAreas) || planet.bodyAreas.length === 0) {
+        console.error(`HATA: ${name} icin bodyAreas bos veya yok!`);
+        test14Valid = false;
+        break;
+      }
+    }
+
+    // Her evde healthDomain string olmali
+    for (const house of medChart.houses.cusps) {
+      if (typeof house.healthDomain !== 'string' || house.healthDomain.length === 0) {
+        console.error(`HATA: Ev ${house.house} icin healthDomain bos veya yok!`);
+        test14Valid = false;
+        break;
+      }
+    }
+
+    if (test14Valid) {
+      console.log('BASARILI: Tum ana gezegenlerde bodyAreas ve tum evlerde healthDomain mevcut');
+      // Ornek cikti
+      const sun = medChart.planets.find(p => p.name === 'Sun');
+      console.log(`  Sun bodyAreas: ${sun.bodyAreas.join(', ')}`);
+      console.log(`  Ev 6 healthDomain: ${medChart.houses.cusps.find(h => h.house === 6).healthDomain}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 15: Combustion ==========
+console.log('\nTEST 15: Combustion — Sun null, digerleri valid status');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test15Valid = true;
+
+    // Sun icin combustion null olmali
+    const sun = medChart.planets.find(p => p.name === 'Sun');
+    if (sun.combustion !== null) {
+      console.error('HATA: Sun icin combustion null olmali!');
+      test15Valid = false;
+    }
+
+    // Diger gezegenler icin valid status
+    const validStatuses = ['cazimi', 'combust', 'under_beams', 'free'];
+    const otherPlanets = medChart.planets.filter(p =>
+      !['Sun', 'True Node', 'South Node', 'Lilith'].includes(p.name)
+    );
+
+    for (const planet of otherPlanets) {
+      if (!planet.combustion) {
+        console.error(`HATA: ${planet.name} icin combustion null!`);
+        test15Valid = false;
+        break;
+      }
+      if (!validStatuses.includes(planet.combustion.status)) {
+        console.error(`HATA: ${planet.name} icin gecersiz combustion status: ${planet.combustion.status}`);
+        test15Valid = false;
+        break;
+      }
+      if (typeof planet.combustion.distanceToSun !== 'number') {
+        console.error(`HATA: ${planet.name} icin distanceToSun number degil!`);
+        test15Valid = false;
+        break;
+      }
+    }
+
+    if (test15Valid) {
+      console.log('BASARILI: Sun null, diger gezegenlerde valid combustion status');
+      // Ornek
+      const mercury = medChart.planets.find(p => p.name === 'Mercury');
+      console.log(`  Mercury: ${mercury.combustion.status} (${mercury.combustion.statusTr}), mesafe: ${mercury.combustion.distanceToSun}°`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 16: Critical Degrees ==========
+console.log('\nTEST 16: Critical Degrees — null veya valid array');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test16Valid = true;
+    let critCount = 0;
+
+    for (const planet of medChart.planets) {
+      if (planet.criticalDegree !== null) {
+        if (!Array.isArray(planet.criticalDegree)) {
+          console.error(`HATA: ${planet.name} criticalDegree array degil!`);
+          test16Valid = false;
+          break;
+        }
+        for (const cd of planet.criticalDegree) {
+          if (!cd.type || !cd.typeTr || typeof cd.degree !== 'number') {
+            console.error(`HATA: ${planet.name} criticalDegree formati yanlis!`);
+            test16Valid = false;
+            break;
+          }
+        }
+        if (!test16Valid) break;
+        critCount++;
+      }
+    }
+
+    if (test16Valid) {
+      console.log(`BASARILI: criticalDegree formati dogru (${critCount} gezegen kritik derecede)`);
+      // Kritik derecedeki gezegenleri goster
+      medChart.planets.filter(p => p.criticalDegree).forEach(p => {
+        p.criticalDegree.forEach(cd => {
+          console.log(`  ${p.name}: ${cd.typeTr} (${cd.degree}°)`);
+        });
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 17: Speed Analysis ==========
+console.log('\nTEST 17: Speed Analysis — 10 ana gezegen valid classification');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test17Valid = true;
+    const validClassifications = ['stationary', 'slow', 'fast', 'average'];
+    const mainPlanetNames = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+
+    for (const name of mainPlanetNames) {
+      const planet = medChart.planets.find(p => p.name === name);
+      if (!planet.speedAnalysis) {
+        console.error(`HATA: ${name} icin speedAnalysis null!`);
+        test17Valid = false;
+        break;
+      }
+      if (!validClassifications.includes(planet.speedAnalysis.classification)) {
+        console.error(`HATA: ${name} icin gecersiz classification: ${planet.speedAnalysis.classification}`);
+        test17Valid = false;
+        break;
+      }
+      if (planet.speedAnalysis.ratio < 0) {
+        console.error(`HATA: ${name} icin ratio negatif: ${planet.speedAnalysis.ratio}`);
+        test17Valid = false;
+        break;
+      }
+    }
+
+    // True Node, South Node, Lilith icin null olmali
+    for (const name of ['True Node', 'South Node', 'Lilith']) {
+      const planet = medChart.planets.find(p => p.name === name);
+      if (planet && planet.speedAnalysis !== null) {
+        console.error(`HATA: ${name} icin speedAnalysis null olmali!`);
+        test17Valid = false;
+        break;
+      }
+    }
+
+    if (test17Valid) {
+      console.log('BASARILI: 10 ana gezegende valid speedAnalysis, Node/Lilith null');
+      // Ornek
+      const mars = medChart.planets.find(p => p.name === 'Mars');
+      console.log(`  Mars: ${mars.speedAnalysis.classificationTr} (ratio: ${mars.speedAnalysis.ratio}, hiz: ${mars.speedAnalysis.currentSpeed}°/gun)`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 18: Profection ==========
+console.log('\nTEST 18: Profection — age, activeHouse, yearLord');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const prof = medChart.analysis.medicalAstrology.profection;
+    let test18Valid = true;
+
+    if (typeof prof.age !== 'number' || prof.age < 0) {
+      console.error(`HATA: age gecersiz: ${prof.age}`);
+      test18Valid = false;
+    }
+
+    const expectedHouse = (prof.age % 12) + 1;
+    if (prof.activeHouse !== expectedHouse) {
+      console.error(`HATA: activeHouse beklenen ${expectedHouse}, gelen ${prof.activeHouse}`);
+      test18Valid = false;
+    }
+
+    if (!prof.yearLord) {
+      console.error('HATA: yearLord null!');
+      test18Valid = false;
+    }
+
+    if (!prof.activeSign) {
+      console.error('HATA: activeSign null!');
+      test18Valid = false;
+    }
+
+    if (test18Valid) {
+      console.log(`BASARILI: Profection dogru — yas: ${prof.age}, ev: ${prof.activeHouse}, yil lordu: ${prof.yearLord} (${prof.yearLordTr})`);
+      console.log(`  Aktif burc: ${prof.activeSign}, yil lordu burcu: ${prof.yearLordSign}, evi: ${prof.yearLordHouse}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 19: Medical Arabic Parts ==========
+console.log('\nTEST 19: Medical Arabic Parts — 6 nokta, longitude 0-360, house 1-12');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const parts = medChart.analysis.medicalAstrology.arabicParts;
+    let test19Valid = true;
+
+    if (!Array.isArray(parts) || parts.length !== 6) {
+      console.error(`HATA: 6 arabic part bekleniyor, ${parts ? parts.length : 0} geldi!`);
+      test19Valid = false;
+    }
+
+    if (test19Valid) {
+      for (const part of parts) {
+        if (part.longitude < 0 || part.longitude > 360) {
+          console.error(`HATA: ${part.name} longitude 0-360 disinda: ${part.longitude}`);
+          test19Valid = false;
+          break;
+        }
+        if (part.house < 1 || part.house > 12) {
+          console.error(`HATA: ${part.name} house 1-12 disinda: ${part.house}`);
+          test19Valid = false;
+          break;
+        }
+        if (!part.sign || !part.formatted) {
+          console.error(`HATA: ${part.name} sign veya formatted eksik!`);
+          test19Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test19Valid) {
+      console.log('BASARILI: 6 tibbi Arap noktasi, tum degerler gecerli');
+      parts.forEach(p => {
+        console.log(`  ${p.trName.padEnd(25)} ${p.formatted.padEnd(20)} Ev ${p.house}`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 20: Antiscia ==========
+console.log('\nTEST 20: Antiscia — points, formul dogrulamasi, hiddenConnections');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const antiscia = medChart.analysis.medicalAstrology.antiscia;
+    let test20Valid = true;
+
+    // points sayisi = gezegen sayisi
+    if (antiscia.points.length !== medChart.planets.length) {
+      console.error(`HATA: antiscia points sayisi (${antiscia.points.length}) != gezegen sayisi (${medChart.planets.length})`);
+      test20Valid = false;
+    }
+
+    // Formul dogrulamasi: antiscion = (180 - lon + 360) % 360
+    for (const point of antiscia.points) {
+      const expectedAnti = (180 - point.longitude + 360) % 360;
+      if (Math.abs(point.antiscion.longitude - expectedAnti) > 0.001) {
+        console.error(`HATA: ${point.planet} antiscion formul hatasi: beklenen ${expectedAnti.toFixed(4)}, gelen ${point.antiscion.longitude}`);
+        test20Valid = false;
+        break;
+      }
+
+      // Contra-antiscion: (360 - lon) % 360
+      const expectedContra = (360 - point.longitude) % 360;
+      if (Math.abs(point.contraAntiscion.longitude - expectedContra) > 0.001) {
+        console.error(`HATA: ${point.planet} contra-antiscion formul hatasi: beklenen ${expectedContra.toFixed(4)}, gelen ${point.contraAntiscion.longitude}`);
+        test20Valid = false;
+        break;
+      }
+    }
+
+    // hiddenConnections array olmali
+    if (!Array.isArray(antiscia.hiddenConnections)) {
+      console.error('HATA: hiddenConnections array degil!');
+      test20Valid = false;
+    }
+
+    if (test20Valid) {
+      console.log(`BASARILI: ${antiscia.points.length} antiscia noktasi, formul dogru, ${antiscia.hiddenConnections.length} gizli baglanti`);
+      // Ornek
+      const sun = antiscia.points.find(p => p.planet === 'Sun');
+      if (sun) {
+        console.log(`  Sun antiscion: ${sun.antiscion.formatted}, contra: ${sun.contraAntiscion.formatted}`);
+      }
+      if (antiscia.hiddenConnections.length > 0) {
+        const hc = antiscia.hiddenConnections[0];
+        console.log(`  Ilk gizli baglanti: ${hc.planet1} <-> ${hc.planet2} (${hc.typeTr}, orb: ${hc.orb}°)`);
+      }
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
 }
 
 console.log('\n' + '='.repeat(70));
