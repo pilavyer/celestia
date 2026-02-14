@@ -205,6 +205,49 @@ export const OOB_MEDICAL = {
   Lilith:  'extreme reproductive and hormonal issues, suppressed health conditions',
 };
 
+/** Progressed Moon burç sağlık temaları */
+export const PROGRESSED_MOON_HEALTH = {
+  Aries:       'head, inflammation, acute onset, surgery timing, accidents',
+  Taurus:      'throat, thyroid, weight gain, metabolic slowdown, comfort eating',
+  Gemini:      'nervous tension, respiratory, anxiety increase, scattered energy',
+  Cancer:      'stomach, breast health, emotional eating, water retention, depression',
+  Leo:         'heart, vitality peak or crisis, back problems, blood pressure',
+  Virgo:       'digestive overhaul, health anxiety, dietary changes, intestinal',
+  Libra:       'kidney, hormonal balance, skin, lower back, sugar metabolism',
+  Scorpio:     'reproductive, elimination, detox crisis, psychological depth, surgery',
+  Sagittarius: 'liver, hip/thigh, restlessness, excess, weight management',
+  Capricorn:   'bones, joints, teeth, depression, chronic conditions surface',
+  Aquarius:    'circulation, nervous system, ankles, spasms, unusual symptoms',
+  Pisces:      'immune weakness, feet, lymphatic, addiction vulnerability, psychosomatic',
+};
+
+/** Ebertin tıbbi midpoint kataloğu */
+export const MEDICAL_MIDPOINTS = {
+  'Sun/Moon':       { meaning: 'psychosomatic balance, overall vitality integration',     medical: 'constitution core — a transit here affects total health' },
+  'Sun/Mars':       { meaning: 'vital energy, physical drive',                            medical: 'fevers, inflammation, acute illness, surgery timing' },
+  'Sun/Saturn':     { meaning: 'vitality restriction, endurance',                          medical: 'chronic fatigue, bone/dental, depression, low vitality periods' },
+  'Sun/Uranus':     { meaning: 'sudden energy shifts',                                     medical: 'sudden illness onset, heart rhythm, nervous shock' },
+  'Sun/Neptune':    { meaning: 'vitality dissolution',                                     medical: 'immune weakness, misdiagnosis, drug sensitivity, poisoning' },
+  'Sun/Pluto':      { meaning: 'regeneration or destruction',                              medical: 'cellular transformation, tumor, major health turning point' },
+  'Moon/Mars':      { meaning: 'emotional inflammation',                                   medical: 'stomach inflammation, menstrual issues, emotional eating, anger-related illness' },
+  'Moon/Saturn':    { meaning: 'emotional restriction',                                    medical: 'depression, digestive sluggishness, calcium issues, grief-related illness' },
+  'Moon/Neptune':   { meaning: 'emotional dissolution',                                    medical: 'addiction, psychosomatic illness, allergies, fluid imbalance' },
+  'Moon/Pluto':     { meaning: 'emotional crisis',                                         medical: 'reproductive crisis, obsessive-compulsive, eating disorders' },
+  'Mars/Saturn':    { meaning: 'THE illness axis — most important medical midpoint',       medical: 'disease manifestation, surgery, broken bones, blocked energy, chronic inflammation' },
+  'Mars/Uranus':    { meaning: 'sudden injury',                                            medical: 'accidents, electric shock, sudden surgery, nerve damage' },
+  'Mars/Neptune':   { meaning: 'weakened action',                                          medical: 'infection, poisoning, allergic reaction, mysterious inflammation' },
+  'Mars/Pluto':     { meaning: 'extreme force',                                            medical: 'major surgery, violent injury, tumor, extreme physical crisis' },
+  'Saturn/Uranus':  { meaning: 'structure disruption',                                     medical: 'sudden chronic onset, spinal injury, nervous system + bone combo' },
+  'Saturn/Neptune': { meaning: 'slow dissolution',                                         medical: 'chronic mysterious illness, immune deficiency, slow poisoning, depression' },
+  'Saturn/Pluto':   { meaning: 'extreme restriction',                                      medical: 'life-threatening chronic illness, major surgery, forced transformation' },
+  'Jupiter/Saturn': { meaning: 'growth vs restriction',                                    medical: 'liver + bone axis, metabolic regulation, tumor growth/containment' },
+  'Venus/Mars':     { meaning: 'reproductive axis',                                        medical: 'hormonal balance, reproductive health, urogenital' },
+  'Venus/Saturn':   { meaning: 'pleasure restriction',                                     medical: 'kidney stones, skin aging, hormonal deficiency, dental' },
+  'Ascendant/Mars':    { meaning: 'body + action',                                         medical: 'physical injury to body, surgery on body, fever' },
+  'Ascendant/Saturn':  { meaning: 'body + restriction',                                    medical: 'physical limitation, chronic body issue, aging effects' },
+  'Midheaven/Saturn':  { meaning: 'career + restriction',                                  medical: 'work-related illness, burnout, occupational hazard' },
+};
+
 // ========== FONKSİYONLAR ==========
 
 /**

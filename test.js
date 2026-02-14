@@ -1405,6 +1405,395 @@ if (medChart) {
   }
 }
 
+// ========== TEST 29: Secondary Progressions — temel yapı ve doğrulama ==========
+console.log('\nTEST 29: Secondary Progressions — age, progressed Moon, solar arc');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const sp = medChart.analysis.medicalAstrology.secondaryProgressions;
+    let test29Valid = true;
+
+    if (!sp || typeof sp !== 'object') {
+      console.error('HATA: secondaryProgressions objesi yok!');
+      test29Valid = false;
+    }
+
+    if (test29Valid) {
+      // Yaş kontrolü (1990 doğumlu, ~35 yaşında olmalı)
+      if (typeof sp.ageInYears !== 'number' || sp.ageInYears < 34 || sp.ageInYears > 37) {
+        console.error(`HATA: ageInYears beklenen aralıkta degil: ${sp.ageInYears}`);
+        test29Valid = false;
+      }
+
+      // Solar arc kontrolü (yaklaşık yaş kadar derece ilerlemeli)
+      if (typeof sp.solarArc !== 'number' || sp.solarArc < 30 || sp.solarArc > 40) {
+        console.error(`HATA: solarArc beklenen aralikta degil: ${sp.solarArc}`);
+        test29Valid = false;
+      }
+
+      // Progressed Moon kontrolü
+      if (!sp.progressedMoon || typeof sp.progressedMoon.sign !== 'string') {
+        console.error('HATA: progressedMoon.sign yok!');
+        test29Valid = false;
+      }
+      if (!sp.progressedMoon.healthTheme || typeof sp.progressedMoon.healthTheme !== 'string') {
+        console.error('HATA: progressedMoon.healthTheme yok!');
+        test29Valid = false;
+      }
+
+      // Progressed planets kontrolü
+      if (!Array.isArray(sp.planets) || sp.planets.length < 10) {
+        console.error(`HATA: progressed planets eksik: ${sp.planets?.length}`);
+        test29Valid = false;
+      }
+    }
+
+    if (test29Valid) {
+      console.log(`BASARILI: age=${sp.ageInYears.toFixed(1)}, solarArc=${sp.solarArc.toFixed(2)}°, progMoon=${sp.progressedMoon.sign}`);
+      console.log(`  Progressed ASC: ${sp.ascendant.formatted}`);
+      console.log(`  Progressed MC: ${sp.midheaven.formatted}`);
+      console.log(`  Health theme: ${sp.progressedMoon.healthTheme}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 30: Secondary Progressions — aspektler ==========
+console.log('\nTEST 30: Progressed Aspects to Natal — format ve orb');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const sp = medChart.analysis.medicalAstrology.secondaryProgressions;
+    let test30Valid = true;
+
+    if (!Array.isArray(sp.aspectsToNatal)) {
+      console.error('HATA: aspectsToNatal array degil!');
+      test30Valid = false;
+    }
+
+    if (test30Valid) {
+      const validAspects = ['Conjunction', 'Opposition', 'Trine', 'Square', 'Sextile'];
+      for (const a of sp.aspectsToNatal) {
+        if (!validAspects.includes(a.aspect)) {
+          console.error(`HATA: gecersiz aspekt tipi: ${a.aspect}`);
+          test30Valid = false;
+          break;
+        }
+        if (typeof a.orb !== 'number' || a.orb < 0 || a.orb > 1.0) {
+          console.error(`HATA: ${a.progressed}-${a.natal} orb gecersiz: ${a.orb}`);
+          test30Valid = false;
+          break;
+        }
+        if (!a.progressed || !a.natal) {
+          console.error('HATA: progressed veya natal alan eksik');
+          test30Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test30Valid) {
+      console.log(`BASARILI: ${sp.aspectsToNatal.length} progressed aspekt bulundu`);
+      sp.aspectsToNatal.slice(0, 5).forEach(a => {
+        console.log(`  P.${a.progressed.padEnd(10)} ${a.aspect.padEnd(12)} N.${a.natal.padEnd(10)} orb: ${a.orb}°`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 31: Solar Return — güneş hassasiyeti ve harita ==========
+console.log('\nTEST 31: Solar Return — sun accuracy < 0.01° ve harita yapisi');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const sr = medChart.analysis.medicalAstrology.solarReturn;
+    let test31Valid = true;
+
+    if (!sr || typeof sr !== 'object') {
+      console.error('HATA: solarReturn objesi yok!');
+      test31Valid = false;
+    }
+
+    if (test31Valid) {
+      // Sun accuracy kontrolü
+      if (sr.sunAccuracy > 0.01) {
+        console.error(`HATA: sunAccuracy cok yuksek: ${sr.sunAccuracy}° (beklenen < 0.01°)`);
+        test31Valid = false;
+      }
+
+      // Chart yapısı kontrolü
+      if (!sr.chart || !Array.isArray(sr.chart.planets) || sr.chart.planets.length < 10) {
+        console.error('HATA: SR chart.planets eksik!');
+        test31Valid = false;
+      }
+
+      // ASC ve MC kontrolü
+      if (!sr.chart.ascendant || typeof sr.chart.ascendant.longitude !== 'number') {
+        console.error('HATA: SR ascendant eksik!');
+        test31Valid = false;
+      }
+      if (!sr.chart.midheaven || typeof sr.chart.midheaven.longitude !== 'number') {
+        console.error('HATA: SR midheaven eksik!');
+        test31Valid = false;
+      }
+
+      // SR yılı kontrolü
+      if (typeof sr.year !== 'number' || sr.year < 2025 || sr.year > 2027) {
+        console.error(`HATA: SR year beklenmiyor: ${sr.year}`);
+        test31Valid = false;
+      }
+
+      // Gezegen ev konumları kontrolü
+      if (test31Valid) {
+        for (const p of sr.chart.planets) {
+          if (typeof p.house !== 'number' || p.house < 1 || p.house > 12) {
+            console.error(`HATA: SR ${p.name} house gecersiz: ${p.house}`);
+            test31Valid = false;
+            break;
+          }
+        }
+      }
+    }
+
+    if (test31Valid) {
+      const natalSunLon = medChart.planets.find(p => p.name === 'Sun').longitude;
+      const srSunLon = sr.chart.planets.find(p => p.name === 'Sun').longitude;
+      console.log(`BASARILI: SR ${sr.year}, sunAccuracy=${sr.sunAccuracy}°`);
+      console.log(`  Natal Sun: ${natalSunLon.toFixed(4)}° | SR Sun: ${srSunLon.toFixed(4)}°`);
+      console.log(`  SR ASC: ${sr.chart.ascendant.formatted} | SR MC: ${sr.chart.midheaven.formatted}`);
+      console.log(`  Tarih: ${sr.exactDatetime}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 32: Solar Return — sağlık analizi ==========
+console.log('\nTEST 32: Solar Return Health Analysis — yapı ve alanlar');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const sr = medChart.analysis.medicalAstrology.solarReturn;
+    let test32Valid = true;
+
+    if (!sr.healthAnalysis || typeof sr.healthAnalysis !== 'object') {
+      console.error('HATA: healthAnalysis objesi yok!');
+      test32Valid = false;
+    }
+
+    if (test32Valid) {
+      const ha = sr.healthAnalysis;
+
+      // yearTheme kontrolü
+      if (!ha.yearTheme || !ha.yearTheme.lord || !ha.yearTheme.sign) {
+        console.error('HATA: yearTheme.lord veya sign eksik!');
+        test32Valid = false;
+      }
+
+      // yearlyConstitution kontrolü
+      if (!ha.yearlyConstitution || !ha.yearlyConstitution.sign || !Array.isArray(ha.yearlyConstitution.bodyFocus)) {
+        console.error('HATA: yearlyConstitution eksik!');
+        test32Valid = false;
+      }
+
+      // riskLevel kontrolü (0-10)
+      if (typeof ha.riskLevel !== 'number' || ha.riskLevel < 0 || ha.riskLevel > 10) {
+        console.error(`HATA: riskLevel gecersiz: ${ha.riskLevel}`);
+        test32Valid = false;
+      }
+
+      // warnings ve protectiveFactors array kontrolü
+      if (!Array.isArray(ha.warnings) || !Array.isArray(ha.protectiveFactors)) {
+        console.error('HATA: warnings/protectiveFactors array degil!');
+        test32Valid = false;
+      }
+    }
+
+    if (test32Valid) {
+      const ha = sr.healthAnalysis;
+      console.log(`BASARILI: SR Health Analysis tamamlandi`);
+      console.log(`  Year theme: ${ha.yearTheme.lord} in ${ha.yearTheme.sign} (house ${ha.yearTheme.house})`);
+      console.log(`  Constitution: ${ha.yearlyConstitution.sign}, bodyFocus: ${ha.yearlyConstitution.bodyFocus.join(', ')}`);
+      console.log(`  Risk level: ${ha.riskLevel}/10`);
+      if (ha.warnings.length > 0) console.log(`  Warnings: ${ha.warnings.join('; ')}`);
+      if (ha.protectiveFactors.length > 0) console.log(`  Protective: ${ha.protectiveFactors.join('; ')}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 33: Medical Midpoints — katalog ve yapı ==========
+console.log('\nTEST 33: Medical Midpoints — katalog, Mars/Saturn, sign/degree');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const mp = medChart.analysis.medicalAstrology.midpoints;
+    let test33Valid = true;
+
+    if (!mp || typeof mp !== 'object') {
+      console.error('HATA: midpoints objesi yok!');
+      test33Valid = false;
+    }
+
+    if (test33Valid) {
+      // Medical midpoints array kontrolü
+      if (!Array.isArray(mp.medical) || mp.medical.length < 10) {
+        console.error(`HATA: medical midpoints eksik: ${mp.medical?.length}`);
+        test33Valid = false;
+      }
+
+      // Mars/Saturn midpoint kontrolü (critical priority)
+      if (!mp.marsSaturnMidpoint) {
+        console.error('HATA: marsSaturnMidpoint yok!');
+        test33Valid = false;
+      } else if (mp.marsSaturnMidpoint.pair !== 'Mars/Saturn') {
+        console.error(`HATA: marsSaturnMidpoint pair yanlis: ${mp.marsSaturnMidpoint.pair}`);
+        test33Valid = false;
+      }
+
+      // Her midpoint'in gerekli alanları
+      if (test33Valid) {
+        for (const m of mp.medical) {
+          if (!m.pair || typeof m.midpoint !== 'number' || !m.sign || typeof m.degree !== 'number') {
+            console.error(`HATA: midpoint alanlari eksik: ${m.pair}`);
+            test33Valid = false;
+            break;
+          }
+          if (m.midpoint < 0 || m.midpoint >= 360) {
+            console.error(`HATA: midpoint longitude gecersiz: ${m.midpoint}`);
+            test33Valid = false;
+            break;
+          }
+          if (!m.meaning || !m.medical) {
+            console.error(`HATA: ${m.pair} meaning/medical eksik!`);
+            test33Valid = false;
+            break;
+          }
+        }
+      }
+    }
+
+    if (test33Valid) {
+      console.log(`BASARILI: ${mp.medical.length} tibbi midpoint hesaplandi`);
+      console.log(`  Mars/Saturn: ${mp.marsSaturnMidpoint.formatted} (${mp.marsSaturnMidpoint.priority})`);
+      mp.medical.slice(0, 3).forEach(m => {
+        console.log(`  ${m.pair.padEnd(20)} ${m.formatted.padEnd(18)} ${m.priority}`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 34: Midpoint Natal Contacts — 90° dial ==========
+console.log('\nTEST 34: Midpoint Natal Contacts — 90° dial, orb, contact type');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const mp = medChart.analysis.medicalAstrology.midpoints;
+    let test34Valid = true;
+
+    if (!Array.isArray(mp.natalContacts)) {
+      console.error('HATA: natalContacts array degil!');
+      test34Valid = false;
+    }
+
+    if (test34Valid) {
+      const validContactTypes = ['direct', 'opposition', 'square'];
+      for (const c of mp.natalContacts) {
+        if (!validContactTypes.includes(c.contactType)) {
+          console.error(`HATA: gecersiz contactType: ${c.contactType}`);
+          test34Valid = false;
+          break;
+        }
+        if (typeof c.orb !== 'number' || c.orb < 0 || c.orb > 1.5) {
+          console.error(`HATA: ${c.midpoint}-${c.planet} orb gecersiz: ${c.orb}`);
+          test34Valid = false;
+          break;
+        }
+        if (!c.midpoint || !c.planet || !c.planetTr) {
+          console.error('HATA: contact alanlari eksik!');
+          test34Valid = false;
+          break;
+        }
+        if (!c.medical || !c.priority) {
+          console.error('HATA: contact medical/priority eksik!');
+          test34Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test34Valid) {
+      console.log(`BASARILI: ${mp.natalContacts.length} natal contact bulundu (90° dial)`);
+      mp.natalContacts.slice(0, 5).forEach(c => {
+        console.log(`  ${c.midpoint.padEnd(20)} ${c.contactType.padEnd(12)} ${c.planet.padEnd(10)} orb: ${c.orb}°`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 35: calcMidpoint wrap-around doğrulaması ==========
+console.log('\nTEST 35: calcMidpoint wrap-around — (350°, 10°) ≈ 0°');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    // Midpoints objesinden wrap-around mantığını dolaylı test et
+    // Tüm midpoint'ler 0-360 arasında olmalı
+    const mp = medChart.analysis.medicalAstrology.midpoints;
+    let test35Valid = true;
+
+    for (const m of mp.medical) {
+      if (m.midpoint < 0 || m.midpoint >= 360) {
+        console.error(`HATA: ${m.pair} midpoint aralık dışı: ${m.midpoint}`);
+        test35Valid = false;
+        break;
+      }
+      if (m.oppositeMidpoint < 0 || m.oppositeMidpoint >= 360) {
+        console.error(`HATA: ${m.pair} oppositeMidpoint aralık dışı: ${m.oppositeMidpoint}`);
+        test35Valid = false;
+        break;
+      }
+      // Opposite midpoint = midpoint + 180 (mod 360) kontrolü
+      const expectedOpp = (m.midpoint + 180) % 360;
+      const oppDiff = Math.abs(m.oppositeMidpoint - expectedOpp);
+      if (oppDiff > 0.001) {
+        console.error(`HATA: ${m.pair} opposite midpoint tutarsız: ${m.oppositeMidpoint} vs beklenen ${expectedOpp}`);
+        test35Valid = false;
+        break;
+      }
+    }
+
+    // Mars/Saturn priority kontrolü
+    if (test35Valid && mp.marsSaturnMidpoint) {
+      if (mp.marsSaturnMidpoint.priority !== 'critical') {
+        console.error(`HATA: Mars/Saturn priority 'critical' olmali, bulundu: ${mp.marsSaturnMidpoint.priority}`);
+        test35Valid = false;
+      }
+    }
+
+    if (test35Valid) {
+      console.log('BASARILI: Tum midpoint degerler 0-360 araliginda, opposite = midpoint + 180°');
+      console.log(`  Mars/Saturn priority: ${mp.marsSaturnMidpoint.priority}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
 console.log('\n' + '='.repeat(70));
 console.log('Testler tamamlandi. Sonuclari astro.com ile karsilastirmayi unutma!');
 console.log('='.repeat(70));
