@@ -28,8 +28,10 @@ cd celestia
 npm install
 npm start        # http://localhost:3000
 npm run dev      # auto-reload with nodemon
-npm test         # run 13-test suite
+npm test         # run test suite (13 tests)
 ```
+
+> **Medical Astrology** features (planetary strength, fixed stars, progressions, midpoints, etc.) are in a separate private package: [`calestia-medical`](https://github.com/pilavyer/calestia-medical).
 
 ## API Reference
 
@@ -114,7 +116,7 @@ curl -X POST http://localhost:3000/api/natal-chart \
   "meta": {
     "julianDayET": 2448090.97916667,
     "engine": "sweph (Swiss Ephemeris Node.js binding)",
-    "version": "2.0.0"
+    "version": "3.0.0"
   }
 }
 ```
@@ -295,7 +297,7 @@ List all supported house systems with descriptions.
 Health check.
 
 ```json
-{ "status": "ok", "engine": "celestia", "version": "2.0.0" }
+{ "status": "ok", "engine": "celestia", "version": "3.0.0" }
 ```
 
 ## Project Structure

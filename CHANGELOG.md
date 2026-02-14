@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiss Ephemeris data files covering 1800–2400 AD (`ephe/`)
 - 5 natal chart tests (Tests 1-5)
 
+[3.0.0]: https://github.com/pilavyer/celestia/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/pilavyer/celestia/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/pilavyer/celestia/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/pilavyer/celestia/releases/tag/v1.0.0
