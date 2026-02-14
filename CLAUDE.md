@@ -10,7 +10,7 @@ Celestia is a high-precision astrology calculation engine exposing a REST API. I
 - **Framework:** Express
 - **Ephemeris:** sweph (Swiss Ephemeris native binding)
 - **Timezone:** Luxon (IANA timezone → UTC with historical DST)
-- **Ephemeris Data:** `ephe/` directory contains Swiss Ephemeris data files covering 1800–2400 AD
+- **Ephemeris Data:** `ephe/` directory contains Swiss Ephemeris data files covering 1800–2400 AD + fixed star catalog (`sefstars.txt`)
 
 ## Architecture
 

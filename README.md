@@ -13,7 +13,7 @@ High-precision astrology calculation engine powered by Swiss Ephemeris. Calculat
 - **Planetary Dignities** — Domicile, exaltation, detriment, fall
 - **IANA Timezone Support** — Historical DST handling via Luxon
 - **Bilingual Output** — English + Turkish labels on all entities
-- **Chart Analysis** — Moon phase, Part of Fortune, element/modality distribution, hemisphere emphasis, stellium detection
+- **Chart Analysis** — Moon phase, Part of Fortune, element/modality distribution, hemisphere emphasis, stellium detection, chart ruler, house rulers
 
 ## Requirements
 
@@ -309,6 +309,7 @@ celestia/
 │   └── MIGRATION_GUIDE_ASTROAK.md    # AstroAK embedding guide
 ├── ephe/                              # Swiss Ephemeris data files
 │   ├── seas_18.se1                    # Asteroid data (1800-2400 AD)
+│   ├── sefstars.txt                   # Fixed star catalog
 │   ├── semo_18.se1                    # Moon data (1800-2400 AD)
 │   └── sepl_18.se1                    # Planet data (1800-2400 AD)
 ├── src/
@@ -321,6 +322,7 @@ celestia/
 │   ├── utils.js        # Longitude→sign, moon phase, Part of Fortune, etc.
 │   └── constants.js    # Celestial bodies, aspects, signs, house systems
 ├── .editorconfig        # Editor settings (2-space indent, UTF-8, LF)
+├── .gitignore           # Git ignore rules
 ├── CHANGELOG.md         # Version history
 ├── CLAUDE.md            # AI developer guide
 ├── LICENSE              # AGPL-3.0
