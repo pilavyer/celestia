@@ -39,7 +39,7 @@ Converts local birth time to UTC using Luxon. Handles DST spring-forward gaps (t
 Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfFortune()`, element/modality distribution, hemisphere emphasis, `findPlanetInHouse()`.
 
 ### `src/medical.js`
-Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, medical Arabic parts, Dorothean triplicity, Egyptian terms, Chaldean faces, and Lilly dignity scores. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections), `calculatePlanetaryStrength()` (Lilly-system essential+accidental dignity scoring with full breakdown).
+Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, medical Arabic parts, Dorothean triplicity, Egyptian terms, Chaldean faces, Lilly dignity scores, 22 medical fixed stars catalog, and OOB medical interpretations. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections), `calculatePlanetaryStrength()` (Lilly-system essential+accidental dignity scoring with full breakdown). Fixed star conjunctions, declination, and parallel aspects are computed in `calculator.js` using `swe.fixstar2_ut()` and `SEFLG_EQUATORIAL`.
 
 ### `src/constants.js`
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, and modalities.
@@ -80,7 +80,7 @@ Version history in [Keep a Changelog](https://keepachangelog.com) format. Update
 ```bash
 npm start        # Start production server (port 3000)
 npm run dev      # Start with nodemon (auto-reload)
-npm test         # Run 23-test suite (natal, synastry, transit, lunar, medical, strength)
+npm test         # Run 28-test suite (natal, synastry, transit, medical, strength, stars, declination)
 npm run compare  # Run compare.js (dev utility, not committed)
 ```
 
@@ -92,6 +92,7 @@ npm run compare  # Run compare.js (dev utility, not committed)
 - Tests 9-13: Transit (response shape, orb validation, event timing, lunar metrics, aspect angle validation)
 - Tests 14-20: Medical astrology (body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia)
 - Tests 21-23: Planetary strength (Lilly score + breakdown consistency + known dignity validation)
+- Tests 24-28: Fixed stars (conjunctions), declination (values, planet fields, OOB consistency), parallel aspects
 
 Run with `node test.js` — all tests should print "BASARILI" (success).
 

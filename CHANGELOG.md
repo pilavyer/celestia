@@ -20,7 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `healthDomain` field added to each house cusp (e.g., house 6 → "acute illness, daily health and hygiene")
 - `planetaryStrength` field added to each planet with `totalScore`, `breakdown`, `strength`, `strengthTr`
 - `analysis.medicalAstrology` section in natal chart output containing profection, Arabic parts, and antiscia
-- 10 new tests (Tests 14-23): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia, planetary strength score, breakdown consistency, known dignity validation
+- **Fixed star conjunctions**: 22 medically significant stars (Algol, Regulus, Antares, Spica, Fomalhaut, etc.) with planet proximity detection via `swe.fixstar2_ut()`
+- **Declination & parallel aspects**: equatorial declination for all planets, Out-of-Bounds detection (|dec| > 23.44°) with medical notes, parallel (conjunction effect) and contra-parallel (opposition effect) aspect calculation
+- `ephe/sefstars.txt` — Swiss Ephemeris fixed star catalog (1602 stars)
+- 15 new tests (Tests 14-28): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia, planetary strength score, breakdown consistency, known dignity validation, fixed star conjunctions, declination values, planet declination fields, parallel aspects, OOB consistency
 
 ## [2.0.0] - 2026-02-12
 

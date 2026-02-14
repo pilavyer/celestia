@@ -164,6 +164,47 @@ export const MEDICAL_ARABIC_PARTS = [
   { name: 'Part of Death',     trName: 'Ölüm Noktası',         a: 'Saturn',  b: 'Moon'    },
 ];
 
+/** Tıbbi açıdan önemli sabit yıldız kataloğu (swe.fixstar2_ut isimleri) */
+export const MEDICAL_FIXED_STARS = [
+  { name: 'Algol',            sweName: 'Algol',            nature: ['Saturn','Jupiter'], medicalEffect: 'head injuries, brain disorders, migraines, throat problems', bodyArea: ['head','neck','throat'], severity: 'high', orb: 1.5 },
+  { name: 'Alcyone',          sweName: 'Alcyone',          nature: ['Moon','Mars'],      medicalEffect: 'eye problems, blindness, facial injuries, fever', bodyArea: ['eyes','face'], severity: 'high', orb: 1.0 },
+  { name: 'Aldebaran',        sweName: 'Aldebaran',        nature: ['Mars'],             medicalEffect: 'eye inflammation, fevers, wounds, blood disorders', bodyArea: ['eyes','blood','head'], severity: 'medium', orb: 1.5 },
+  { name: 'Rigel',            sweName: 'Rigel',            nature: ['Jupiter','Saturn'], medicalEffect: 'foot and leg injuries, bone fractures', bodyArea: ['feet','legs','bones'], severity: 'medium', orb: 1.0 },
+  { name: 'Betelgeuse',       sweName: 'Betelgeuse',       nature: ['Mars','Mercury'],   medicalEffect: 'fevers, acute illness, surgical operations, accidents', bodyArea: ['arms','shoulders'], severity: 'medium', orb: 1.5 },
+  { name: 'Sirius',           sweName: 'Sirius',           nature: ['Jupiter','Mars'],   medicalEffect: 'burns, fevers, immune issues', bodyArea: ['immune system','throat'], severity: 'medium', orb: 1.5 },
+  { name: 'Castor',           sweName: 'Castor',           nature: ['Mercury'],          medicalEffect: 'nervous system disorders, broken bones, mental illness', bodyArea: ['nervous system','bones','arms'], severity: 'medium', orb: 1.0 },
+  { name: 'Pollux',           sweName: 'Pollux',           nature: ['Mars'],             medicalEffect: 'eye problems, fevers, wounds, poisoning', bodyArea: ['eyes','stomach'], severity: 'high', orb: 1.0 },
+  { name: 'Asellus Borealis', sweName: 'Asellus Borealis', nature: ['Mars','Moon'],      medicalEffect: 'eye disease, blindness, mental disturbance, chest problems', bodyArea: ['eyes','chest','mental health'], severity: 'high', orb: 1.0 },
+  { name: 'Regulus',          sweName: 'Regulus',          nature: ['Mars','Jupiter'],   medicalEffect: 'heart problems, inflammation, fevers, sudden death if afflicted', bodyArea: ['heart','upper back','blood'], severity: 'high', orb: 2.0 },
+  { name: 'Vindemiatrix',     sweName: 'Vindemiatrix',     nature: ['Saturn','Mercury'], medicalEffect: 'spinal problems, depression, nervous exhaustion', bodyArea: ['spine','nervous system'], severity: 'high', orb: 1.0 },
+  { name: 'Algorab',          sweName: 'Algorab',          nature: ['Mars','Saturn'],    medicalEffect: 'chronic disease, blood poisoning, infections, skin disease', bodyArea: ['blood','skin'], severity: 'medium', orb: 1.0 },
+  { name: 'Spica',            sweName: 'Spica',            nature: ['Venus','Mars'],     medicalEffect: 'PROTECTIVE — healing ability, surgical skill, recovery power', bodyArea: ['general vitality'], severity: 'protective', orb: 2.0 },
+  { name: 'Arcturus',         sweName: 'Arcturus',         nature: ['Mars','Jupiter'],   medicalEffect: 'PROTECTIVE — vitality, recovery, robust health, but fevers if afflicted', bodyArea: ['general vitality','liver'], severity: 'protective', orb: 1.5 },
+  { name: 'Zuben Elgenubi',   sweName: 'Zuben Elgenubi',   nature: ['Saturn','Mars'],    medicalEffect: 'kidney problems, poisoning, chronic illness', bodyArea: ['kidneys','lower back'], severity: 'high', orb: 1.0 },
+  { name: 'Zuben Eschamali',  sweName: 'Zuben Eschamali',  nature: ['Jupiter','Mercury'],medicalEffect: 'PROTECTIVE — good health, long life, mental acuity', bodyArea: ['general vitality','mental health'], severity: 'protective', orb: 1.0 },
+  { name: 'Antares',          sweName: 'Antares',          nature: ['Mars','Jupiter'],   medicalEffect: 'eye inflammation, fevers, heart problems', bodyArea: ['eyes','heart','reproductive'], severity: 'high', orb: 2.0 },
+  { name: 'Ras Alhague',      sweName: 'Ras Alhague',      nature: ['Saturn','Venus'],   medicalEffect: 'healing ability but infection risk, poisoning, drug sensitivity', bodyArea: ['immune system','reproductive'], severity: 'medium', orb: 1.0 },
+  { name: 'Vega',             sweName: 'Vega',             nature: ['Venus','Mercury'],  medicalEffect: 'PROTECTIVE — artistic healing, but eye and ear sensitivity', bodyArea: ['eyes','ears'], severity: 'protective', orb: 1.5 },
+  { name: 'Altair',           sweName: 'Altair',           nature: ['Mars','Jupiter'],   medicalEffect: 'sudden illness, accidents, fevers, blood disorders', bodyArea: ['blood','lungs'], severity: 'medium', orb: 1.0 },
+  { name: 'Fomalhaut',        sweName: 'Fomalhaut',        nature: ['Venus','Mercury'],  medicalEffect: 'PROTECTIVE — healing, recovery, but addiction vulnerability', bodyArea: ['feet','immune system','lymphatic'], severity: 'protective', orb: 2.0 },
+  { name: 'Scheat',           sweName: 'Scheat',           nature: ['Mars','Mercury'],   medicalEffect: 'drowning, poisoning, addiction, extreme sensitivity', bodyArea: ['lungs','feet','mental health'], severity: 'high', orb: 1.0 },
+];
+
+/** Out-of-Bounds tıbbi yorum tablosu */
+export const OOB_MEDICAL = {
+  Moon:    'extreme emotional swings, hormonal irregularity, unusual reactions to medication',
+  Mercury: 'neurological anomalies, speech disorders, cognitive extremes, hypersensitivity',
+  Venus:   'hormonal extremes, unusual reproductive issues, metabolic anomalies',
+  Mars:    'uncontrollable inflammation, extreme fevers, accident-prone, adrenal crisis',
+  Jupiter: 'excessive growth, liver extremes, metabolic overflow, autoimmune overreaction',
+  Saturn:  'bone density extremes, skeletal anomalies, unusual chronic conditions',
+  Uranus:  'electromagnetic sensitivity, sudden seizures, nervous system anomalies',
+  Neptune: 'extreme drug sensitivity, mysterious illness, immune system anomalies',
+  Pluto:   'cellular mutation, extreme regeneration or degeneration',
+  Chiron:  'intensified wound patterns, extreme healing crisis, unusual pain sensitivity',
+  Lilith:  'extreme reproductive and hormonal issues, suppressed health conditions',
+};
+
 // ========== FONKSİYONLAR ==========
 
 /**

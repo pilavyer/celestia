@@ -1181,6 +1181,230 @@ if (medChart) {
   }
 }
 
+// ========== FIXED STARS & DECLINATION TESTLERİ (24-28) ==========
+
+// ========== TEST 24: Fixed Stars — kavuşum tespiti ==========
+console.log('\nTEST 24: Fixed Stars — kavusum tespiti');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const fixedStars = medChart.analysis.medicalAstrology.fixedStars;
+    let test24Valid = true;
+
+    if (!Array.isArray(fixedStars)) {
+      console.error('HATA: fixedStars array degil!');
+      test24Valid = false;
+    }
+
+    for (const fs of fixedStars) {
+      if (!fs.star || !fs.planet || typeof fs.orb !== 'number') {
+        console.error('HATA: fixedStar formati yanlis!');
+        test24Valid = false;
+        break;
+      }
+      if (!fs.severity || !fs.medicalEffect || !Array.isArray(fs.bodyArea)) {
+        console.error(`HATA: ${fs.star}-${fs.planet} eksik alan!`);
+        test24Valid = false;
+        break;
+      }
+      if (typeof fs.starLongitude !== 'number' || fs.starLongitude < 0 || fs.starLongitude > 360) {
+        console.error(`HATA: ${fs.star} longitude gecersiz: ${fs.starLongitude}`);
+        test24Valid = false;
+        break;
+      }
+    }
+
+    if (test24Valid) {
+      console.log(`BASARILI: ${fixedStars.length} fixed star kavusumu bulundu, format dogru`);
+      fixedStars.forEach(fs => {
+        console.log(`  ${fs.star.padEnd(18)} ${fs.starFormatted.padEnd(18)} <-> ${fs.planet.padEnd(10)} orb: ${fs.orb}° (${fs.severity})`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 25: Declination — degerler ve format ==========
+console.log('\nTEST 25: Declination — degerler ve format');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const decs = medChart.analysis.medicalAstrology.declinations;
+    let test25Valid = true;
+
+    if (!Array.isArray(decs) || decs.length !== medChart.planets.length) {
+      console.error(`HATA: declinations sayisi (${decs?.length}) != gezegen sayisi (${medChart.planets.length})`);
+      test25Valid = false;
+    }
+
+    if (test25Valid) {
+      for (const dec of decs) {
+        if (!dec.name) {
+          console.error('HATA: declination name eksik!');
+          test25Valid = false;
+          break;
+        }
+        if (dec.declination !== null && (typeof dec.declination !== 'number' || Math.abs(dec.declination) > 90)) {
+          console.error(`HATA: ${dec.name} declination gecersiz: ${dec.declination}`);
+          test25Valid = false;
+          break;
+        }
+        if (typeof dec.isOutOfBounds !== 'boolean') {
+          console.error(`HATA: ${dec.name} isOutOfBounds boolean degil!`);
+          test25Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test25Valid) {
+      console.log(`BASARILI: ${decs.length} gezegen icin declination hesaplandi, format dogru`);
+      // Ilk 5
+      decs.slice(0, 5).forEach(d => {
+        const oob = d.isOutOfBounds ? ' [OOB]' : '';
+        console.log(`  ${d.name.padEnd(12)} dec: ${(d.declination >= 0 ? '+' : '') + d.declination}°${oob}`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 26: Planet declination alanları ==========
+console.log('\nTEST 26: Planet declination alanlari — her gezegene eklenmis mi');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test26Valid = true;
+
+    for (const planet of medChart.planets) {
+      if (typeof planet.declination !== 'number') {
+        // South Node null olabilir
+        if (planet.name === 'South Node' && planet.declination !== undefined) continue;
+        if (planet.declination === null) continue;
+        console.error(`HATA: ${planet.name} declination number degil: ${planet.declination}`);
+        test26Valid = false;
+        break;
+      }
+      if (typeof planet.isOutOfBounds !== 'boolean') {
+        console.error(`HATA: ${planet.name} isOutOfBounds boolean degil!`);
+        test26Valid = false;
+        break;
+      }
+      // OOB gezegenlerde oobMedicalNote olmali
+      if (planet.isOutOfBounds && !planet.oobMedicalNote) {
+        console.error(`HATA: ${planet.name} OOB ama oobMedicalNote yok!`);
+        test26Valid = false;
+        break;
+      }
+    }
+
+    if (test26Valid) {
+      console.log('BASARILI: Tum gezegenlerde declination alanlari mevcut');
+      const oobPlanets = medChart.planets.filter(p => p.isOutOfBounds);
+      if (oobPlanets.length > 0) {
+        console.log(`  OOB gezegenler: ${oobPlanets.map(p => p.name + ' (' + p.declination + '°)').join(', ')}`);
+      } else {
+        console.log('  OOB gezegen yok');
+      }
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 27: Parallel aspektler ==========
+console.log('\nTEST 27: Parallel aspektler — type, orb, effect');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const parallels = medChart.analysis.medicalAstrology.parallelAspects;
+    let test27Valid = true;
+
+    if (!Array.isArray(parallels)) {
+      console.error('HATA: parallelAspects array degil!');
+      test27Valid = false;
+    }
+
+    if (test27Valid) {
+      for (const pa of parallels) {
+        if (!['parallel', 'contra_parallel'].includes(pa.type)) {
+          console.error(`HATA: gecersiz parallel type: ${pa.type}`);
+          test27Valid = false;
+          break;
+        }
+        if (!['conjunction', 'opposition'].includes(pa.effect)) {
+          console.error(`HATA: gecersiz effect: ${pa.effect}`);
+          test27Valid = false;
+          break;
+        }
+        if (typeof pa.orb !== 'number' || pa.orb < 0 || pa.orb > 1.0) {
+          console.error(`HATA: ${pa.planet1}-${pa.planet2} orb gecersiz: ${pa.orb}`);
+          test27Valid = false;
+          break;
+        }
+        if (typeof pa.declination1 !== 'number' || typeof pa.declination2 !== 'number') {
+          console.error(`HATA: ${pa.planet1}-${pa.planet2} declination number degil!`);
+          test27Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test27Valid) {
+      const parCount = parallels.filter(p => p.type === 'parallel').length;
+      const cparCount = parallels.filter(p => p.type === 'contra_parallel').length;
+      console.log(`BASARILI: ${parallels.length} parallel aspekt (${parCount} parallel, ${cparCount} contra-parallel)`);
+      // Ilk 5
+      parallels.slice(0, 5).forEach(pa => {
+        console.log(`  ${pa.planet1.padEnd(10)} ${pa.typeTr.padEnd(15)} ${pa.planet2.padEnd(10)} orb: ${pa.orb}° (${pa.effect})`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 28: Declination OOB tutarlılığı ==========
+console.log('\nTEST 28: Declination OOB tutarliligi — |dec| > 23.44 = OOB');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const decs = medChart.analysis.medicalAstrology.declinations;
+    let test28Valid = true;
+
+    for (const dec of decs) {
+      if (dec.declination === null) continue;
+      const shouldBeOOB = Math.abs(dec.declination) > 23.44;
+      if (dec.isOutOfBounds !== shouldBeOOB) {
+        console.error(`HATA: ${dec.name} dec=${dec.declination}, OOB=${dec.isOutOfBounds}, beklenen=${shouldBeOOB}`);
+        test28Valid = false;
+        break;
+      }
+      if (dec.isOutOfBounds) {
+        const expectedDir = dec.declination > 23.44 ? 'north' : 'south';
+        if (dec.oobDirection !== expectedDir) {
+          console.error(`HATA: ${dec.name} OOB direction=${dec.oobDirection}, beklenen=${expectedDir}`);
+          test28Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test28Valid) {
+      console.log('BASARILI: OOB tutarliligi dogru (|dec| > 23.44° = OOB)');
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
 console.log('\n' + '='.repeat(70));
 console.log('Testler tamamlandi. Sonuclari astro.com ile karsilastirmayi unutma!');
 console.log('='.repeat(70));

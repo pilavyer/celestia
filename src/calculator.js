@@ -21,6 +21,7 @@ import {
   getBodyAreas, getCombustionStatus, getCriticalDegree,
   getSpeedClassification, calculatePlanetaryStrength, calculateProfection,
   calculateMedicalArabicParts, calculateAntiscia, HOUSE_HEALTH_MAP,
+  MEDICAL_FIXED_STARS, OOB_MEDICAL,
 } from './medical.js';
 
 const require = createRequire(import.meta.url);
@@ -327,6 +328,25 @@ export function calculateNatalChart({
   const medicalArabicParts = calculateMedicalArabicParts(ascendant, planetsWithHouses, cusps);
   const antiscia = calculateAntiscia(planetsWithHouses);
 
+  // Fixed Stars — gezegen-yıldız kavuşumları
+  const fixedStars = calculateFixedStarConjunctions(planetsWithHouses, jd_et);
+
+  // Declination & Parallel aspektler
+  const declinations = calculateDeclinations(planetsWithHouses, jd_et);
+  const parallelAspects = calculateParallelAspects(declinations);
+
+  // Her gezegene declination bilgisi ekle
+  for (const planet of planetsWithHouses) {
+    const decData = declinations.find(d => d.name === planet.name);
+    if (decData) {
+      planet.declination = decData.declination;
+      planet.isOutOfBounds = decData.isOutOfBounds;
+      if (decData.isOutOfBounds) {
+        planet.oobMedicalNote = OOB_MEDICAL[planet.name] || null;
+      }
+    }
+  }
+
   // ========== SONUÇ ==========
 
   return {
@@ -392,6 +412,9 @@ export function calculateNatalChart({
         profection,
         arabicParts: medicalArabicParts,
         antiscia,
+        fixedStars,
+        declinations,
+        parallelAspects,
       },
     },
 
@@ -439,4 +462,148 @@ function findStelliums(planets) {
   }
 
   return stelliums;
+}
+
+/**
+ * Fixed star — gezegen kavuşumlarını hesapla
+ * @param {Array} planets - planetsWithHouses dizisi
+ * @param {number} jd_et - Julian Day (Ephemeris Time)
+ * @returns {Array}
+ */
+function calculateFixedStarConjunctions(planets, jd_et) {
+  const results = [];
+  const calcFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_SPEED;
+
+  for (const star of MEDICAL_FIXED_STARS) {
+    let starResult;
+    try {
+      starResult = swe.fixstar2_ut(star.sweName, jd_et, calcFlags);
+    } catch {
+      continue;
+    }
+
+    const starLon = starResult.data[0];
+    if (starLon === 0 && star.sweName !== 'Algol') {
+      // lon=0 genelde yıldız bulunamadı demek (Aries 0° olma ihtimali çok düşük)
+      if (starResult.data[1] === 0) continue;
+    }
+
+    const starSignData = longitudeToSign(starLon);
+
+    for (const planet of planets) {
+      let diff = Math.abs(planet.longitude - starLon);
+      if (diff > 180) diff = 360 - diff;
+
+      if (diff <= star.orb) {
+        results.push({
+          star: star.name,
+          starLongitude: roundTo(starLon, 4),
+          starSign: starSignData.sign,
+          starFormatted: `${starSignData.degree}°${String(starSignData.minute).padStart(2, '0')}' ${starSignData.sign}`,
+          planet: planet.name,
+          planetTr: planet.trName,
+          orb: roundTo(diff, 4),
+          nature: star.nature,
+          medicalEffect: star.medicalEffect,
+          bodyArea: star.bodyArea,
+          severity: star.severity,
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Gezegenlerin deklinasyonlarını hesapla (equatorial koordinatlar)
+ * @param {Array} planets - planetsWithHouses dizisi
+ * @param {number} jd_et - Julian Day (Ephemeris Time)
+ * @returns {Array}
+ */
+function calculateDeclinations(planets, jd_et) {
+  const eqFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_EQUATORIAL;
+
+  return planets.map(planet => {
+    // South Node için ayrı hesap (id = -1)
+    if (planet.id === -1) {
+      // South Node'un deklinasyonu = -1 × North Node deklinasyonu
+      const northNode = planets.find(p => p.name === 'True Node');
+      if (northNode) {
+        const nnResult = swe.calc_ut(jd_et, northNode.id, eqFlags);
+        const dec = roundTo(-nnResult.data[1], 4);
+        return {
+          name: planet.name,
+          trName: planet.trName,
+          declination: dec,
+          isOutOfBounds: Math.abs(dec) > 23.44,
+          oobDirection: dec > 23.44 ? 'north' : dec < -23.44 ? 'south' : null,
+        };
+      }
+    }
+
+    if (planet.id < 0) {
+      return { name: planet.name, trName: planet.trName, declination: null, isOutOfBounds: false, oobDirection: null };
+    }
+
+    const result = swe.calc_ut(jd_et, planet.id, eqFlags);
+    const dec = roundTo(result.data[1], 4);
+
+    return {
+      name: planet.name,
+      trName: planet.trName,
+      declination: dec,
+      isOutOfBounds: Math.abs(dec) > 23.44,
+      oobDirection: dec > 23.44 ? 'north' : dec < -23.44 ? 'south' : null,
+    };
+  });
+}
+
+/**
+ * Parallel ve contra-parallel aspektleri hesapla
+ * @param {Array} declinations - calculateDeclinations çıktısı
+ * @param {number} [orb=1.0] - Tolerans derecesi
+ * @returns {Array}
+ */
+function calculateParallelAspects(declinations, orb = 1.0) {
+  const aspects = [];
+
+  // Sadece deklinasyonu olan cisimleri al
+  const validDecs = declinations.filter(d => d.declination !== null);
+
+  for (let i = 0; i < validDecs.length; i++) {
+    for (let j = i + 1; j < validDecs.length; j++) {
+      const p1 = validDecs[i];
+      const p2 = validDecs[j];
+
+      const decDiff = Math.abs(Math.abs(p1.declination) - Math.abs(p2.declination));
+      const sameHemisphere = (p1.declination > 0) === (p2.declination > 0);
+
+      if (decDiff <= orb) {
+        if (sameHemisphere) {
+          aspects.push({
+            planet1: p1.name, planet1Tr: p1.trName,
+            planet2: p2.name, planet2Tr: p2.trName,
+            type: 'parallel', typeTr: 'Paralel',
+            effect: 'conjunction',
+            orb: roundTo(decDiff, 4),
+            declination1: p1.declination,
+            declination2: p2.declination,
+          });
+        } else {
+          aspects.push({
+            planet1: p1.name, planet1Tr: p1.trName,
+            planet2: p2.name, planet2Tr: p2.trName,
+            type: 'contra_parallel', typeTr: 'Kontra-Paralel',
+            effect: 'opposition',
+            orb: roundTo(decDiff, 4),
+            declination1: p1.declination,
+            declination2: p2.declination,
+          });
+        }
+      }
+    }
+  }
+
+  return aspects;
 }
