@@ -1,21 +1,21 @@
-# Celestia → AstroAK Backend Entegrasyon Rehberi
+# Celestia → AstroAK Backend Integration Guide
 
-Bu döküman, AstroAK backend'ine (Express.js, Render.com) Celestia astroloji motorunun entegre edilmesi için adım adım talimatları içerir. Amaç: AstrologyAPI (ücretli 3. parti servis) tamamen kaldırılacak, yerine Celestia'nın lokal hesaplama fonksiyonları kullanılacak.
+This document contains step-by-step instructions for integrating the Celestia astrology engine into the AstroAK backend (Express.js, Render.com). Goal: completely remove AstrologyAPI (paid third-party service) and replace it with Celestia's local calculation functions.
 
-## Ön Bilgi
+## Prerequisites
 
 - **Celestia repo:** `github.com/pilavyer/celestia` (AGPL-3.0, public)
 - **AstroAK backend:** `backend/server.js` (Express.js, Render.com)
-- **Mevcut akış:** Frontend → Next.js API routes → Backend → AstrologyAPI
-- **Hedef akış:** Frontend → Next.js API routes → Backend → Celestia (lokal import)
-- **Frontend'de DEĞİŞİKLİK YOK** — Backend aynı response formatını döndürmeye devam edecek
+- **Current flow:** Frontend → Next.js API routes → Backend → AstrologyAPI
+- **Target flow:** Frontend → Next.js API routes → Backend → Celestia (local import)
+- **NO changes to frontend** — Backend will continue returning the same response format
 
-## Genel Mimari
+## Architecture Overview
 
 ```
 AstroAK Backend (Render.com)
-├── server.js              ← Mevcut Express app (endpoint'ler değişecek)
-├── celestia/              ← YENİ: Celestia motoru
+├── server.js              ← Existing Express app (endpoints will change)
+├── celestia/              ← NEW: Celestia engine
 │   ├── src/
 │   │   ├── calculator.js
 │   │   ├── synastry.js
@@ -25,71 +25,71 @@ AstroAK Backend (Render.com)
 │   │   ├── timezone.js
 │   │   ├── utils.js
 │   │   └── constants.js
-│   └── ephe/              ← Swiss Ephemeris data dosyaları
+│   └── ephe/              ← Swiss Ephemeris data files
 ├── data/
-│   └── retrogrades.json   ← Mevcut (değişmeyecek)
-└── package.json           ← sweph + luxon dependency eklenecek
+│   └── retrogrades.json   ← Existing (will not change)
+└── package.json           ← sweph + luxon dependencies will be added
 ```
 
 ---
 
-## ADIM 1: Celestia dosyalarını backend'e kopyala
+## STEP 1: Copy Celestia files to the backend
 
-### Talimat:
+### Instructions:
 
-1. AstroAK backend klasöründe `celestia/` dizini oluştur:
+1. Create the `celestia/` directory in the AstroAK backend folder:
    ```bash
    cd /path/to/astroak/backend
    mkdir -p celestia
    ```
 
-2. Celestia reposundan `src/` ve `ephe/` klasörlerini kopyala:
+2. Copy the `src/` and `ephe/` directories from the Celestia repo:
    ```bash
    cp -r /path/to/calestia/src celestia/
    cp -r /path/to/calestia/ephe celestia/
    ```
 
-3. `backend/package.json` dosyasına şu dependency'leri ekle (zaten yoksa):
+3. Add these dependencies to `backend/package.json` (if not already present):
    ```json
    "sweph": "2.10.3-4",
    "luxon": "^3.0.0"
    ```
 
-4. `backend/package.json` dosyasına `"type": "module"` ekle. Eğer backend şu an CommonJS kullanıyorsa (require/module.exports), **iki seçenek var:**
+4. Add `"type": "module"` to `backend/package.json`. If the backend currently uses CommonJS (require/module.exports), **there are two options:**
 
-   **Seçenek A (Önerilen):** Backend'i ES modules'a geçir — tüm `require()` → `import`, `module.exports` → `export`
+   **Option A (Recommended):** Migrate the backend to ES modules — convert all `require()` → `import`, `module.exports` → `export`
 
-   **Seçenek B:** Celestia'nın src dosyalarını CommonJS'e çevir — daha çok iş, önerilmez
+   **Option B:** Convert Celestia's src files to CommonJS — more work, not recommended
 
-   **NOT:** Mevcut backend `require()` kullanıyor (CommonJS). Celestia ise `import/export` (ES modules). Bu uyumsuzluğu çözmek şart.
+   **NOTE:** The existing backend uses `require()` (CommonJS). Celestia uses `import/export` (ES modules). This incompatibility must be resolved.
 
-5. `npm install` çalıştır ve `sweph` native addon'ının başarıyla derlendiğini doğrula.
+5. Run `npm install` and verify that the `sweph` native addon compiles successfully.
 
-### Doğrulama:
-- `ls backend/celestia/src/` → 8 JS dosyası görünmeli
-- `ls backend/celestia/ephe/` → `.se1` ephemeris dosyaları görünmeli
-- `npm install` hatasız tamamlanmalı
-- `node -e "import('sweph')"` çalışmalı (ES module test) VEYA `node -e "require('sweph')"` (CommonJS)
+### Verification:
+- `ls backend/celestia/src/` → should show 8 JS files
+- `ls backend/celestia/ephe/` → should show `.se1` ephemeris files
+- `npm install` should complete without errors
+- `node -e "import('sweph')"` should work (ES module test) OR `node -e "require('sweph')"` (CommonJS)
 
-### Beklenen Dönüş:
-- Dosya yapısı screenshot'ı veya `ls` çıktısı
-- `npm install` başarılı mı?
-- Backend şu an CommonJS mı (require) yoksa ES modules mı (import)?
+### Expected Output:
+- File structure screenshot or `ls` output
+- Did `npm install` succeed?
+- Is the backend currently CommonJS (require) or ES modules (import)?
 
 ---
 
-## ADIM 2: Backend'i ES Modules'a geçir (CommonJS → ESM)
+## STEP 2: Migrate backend to ES Modules (CommonJS → ESM)
 
-### Neden:
-Celestia `import/export` kullanıyor. Backend `require()` kullanıyor. Aynı projede karıştırmak sorun çıkarır.
+### Why:
+Celestia uses `import/export`. The backend uses `require()`. Mixing these in the same project causes issues.
 
-### Talimat:
+### Instructions:
 
-1. `backend/package.json` dosyasına `"type": "module"` ekle
+1. Add `"type": "module"` to `backend/package.json`
 
-2. `backend/server.js` dosyasının başındaki `require()` satırlarını `import`'a çevir:
+2. Convert the `require()` statements at the top of `backend/server.js` to `import`:
 
-   **Önceki (CommonJS):**
+   **Before (CommonJS):**
    ```js
    require('dotenv').config();
    const express = require('express');
@@ -101,7 +101,7 @@ Celestia `import/export` kullanıyor. Backend `require()` kullanıyor. Aynı pro
    const path = require('path');
    ```
 
-   **Sonraki (ES Modules):**
+   **After (ES Modules):**
    ```js
    import 'dotenv/config';
    import express from 'express';
@@ -117,26 +117,26 @@ Celestia `import/export` kullanıyor. Backend `require()` kullanıyor. Aynı pro
    const __dirname = path.dirname(__filename);
    ```
 
-3. Dosyanın geri kalanında `require()` kullanılan yer varsa onları da `import`'a çevir.
+3. Convert any remaining `require()` calls in the rest of the file to `import`.
 
-4. `module.exports` varsa `export` yap (muhtemelen yok, server.js genelde export etmez).
+4. Convert `module.exports` to `export` if present (unlikely — server.js usually doesn't export).
 
-### Doğrulama:
-- `node server.js` çalışmalı (mevcut AstrologyAPI ile — henüz Celestia bağlanmadı)
-- Tüm mevcut endpoint'ler çalışmaya devam etmeli
-- Hiçbir frontend davranışı değişmemeli
+### Verification:
+- `node server.js` should work (with existing AstrologyAPI — Celestia not connected yet)
+- All existing endpoints should continue working
+- No frontend behavior should change
 
-### Beklenen Dönüş:
-- `node server.js` başarıyla başlıyor mu?
-- Mevcut natal/synastry/transit endpoint'leri hala çalışıyor mu?
+### Expected Output:
+- Does `node server.js` start successfully?
+- Do existing natal/synastry/transit endpoints still work?
 
 ---
 
-## ADIM 3: Celestia import'larını ekle ve adapter fonksiyonları yaz
+## STEP 3: Add Celestia imports and write adapter functions
 
-### Talimat:
+### Instructions:
 
-`server.js` dosyasının başına Celestia import'larını ekle:
+Add Celestia imports at the top of `server.js`:
 
 ```js
 import { calculateNatalChart } from './celestia/src/calculator.js';
@@ -144,7 +144,7 @@ import { calculateSynastry } from './celestia/src/synastry.js';
 import { calculateTransits, calculateLunarMetrics, nowToJD } from './celestia/src/transit.js';
 ```
 
-Ardından şu adapter fonksiyonlarını `server.js` içine ekle (endpoint'lerden ÖNCE):
+Then add these adapter functions inside `server.js` (BEFORE the endpoints):
 
 ```js
 // ============================================
@@ -152,11 +152,11 @@ Ardından şu adapter fonksiyonlarını `server.js` içine ekle (endpoint'lerden
 // ============================================
 
 /**
- * Celestia natal chart sonucunu AstroAK frontend formatına dönüştür.
- * Frontend'de HİÇBİR DEĞİŞİKLİK gerekmez.
+ * Convert Celestia natal chart result to AstroAK frontend format.
+ * NO changes required on the frontend.
  */
 function adaptNatalResponse(celestiaResult) {
-  // Planets: Celestia formatını AstroAK formatına dönüştür
+  // Planets: Convert Celestia format to AstroAK format
   const planets = celestiaResult.planets.map(p => ({
     name: p.name,
     sign: p.sign,
@@ -166,15 +166,15 @@ function adaptNatalResponse(celestiaResult) {
     house: p.house,
   }));
 
-  // Houses: Celestia formatını AstroAK formatına dönüştür
+  // Houses: Convert Celestia format to AstroAK format
   const houses = celestiaResult.houses.cusps.map(h => ({
     houseId: h.house,
     sign: h.sign,
     startDegree: h.cusp,
-    endDegree: null, // Celestia'da endDegree yok, frontend zaten kullanmıyor
+    endDegree: null, // Celestia doesn't have endDegree, frontend doesn't use it anyway
   }));
 
-  // Aspects: Celestia formatını AstroAK formatına dönüştür
+  // Aspects: Convert Celestia format to AstroAK format
   const aspects = celestiaResult.aspects.map(a => ({
     aspecting_planet: a.planet1,
     aspected_planet: a.planet2,
@@ -184,18 +184,18 @@ function adaptNatalResponse(celestiaResult) {
 
   return {
     success: true,
-    chart: null, // SVG wheel chart — Celestia'da yok, ayrı çözülecek
+    chart: null, // SVG wheel chart — not available in Celestia, to be resolved separately
     planets,
     houses,
     aspects,
-    // Celestia'nın ekstra verileri (AI context için çok değerli)
+    // Celestia's extra data (very valuable for AI context)
     analysis: celestiaResult.analysis,
     meta: celestiaResult.meta,
   };
 }
 
 /**
- * Celestia synastry sonucunu AstroAK frontend formatına dönüştür.
+ * Convert Celestia synastry result to AstroAK frontend format.
  */
 function adaptSynastryResponse(celestiaResult) {
   const adaptPlanets = (planets) => planets.map(p => ({
@@ -214,7 +214,7 @@ function adaptSynastryResponse(celestiaResult) {
     endDegree: null,
   }));
 
-  // Cross-aspects → synastry.aspects formatı
+  // Cross-aspects → synastry.aspects format
   const aspects = celestiaResult.synastry.crossAspects.map(a => ({
     aspecting_planet: a.planet1,
     aspected_planet: a.planet2,
@@ -228,7 +228,7 @@ function adaptSynastryResponse(celestiaResult) {
       first: adaptPlanets(celestiaResult.person1.planets),
       second: adaptPlanets(celestiaResult.person2.planets),
       aspects: aspects,
-      // Yeni bonus veriler (frontend kullanmasa bile AI context için)
+      // Additional bonus data (valuable for AI context even if frontend doesn't use it)
       houseOverlay: celestiaResult.synastry.houseOverlay,
       composite: celestiaResult.composite,
     },
@@ -238,7 +238,7 @@ function adaptSynastryResponse(celestiaResult) {
 }
 
 /**
- * Celestia transit sonucunu AstroAK frontend formatına dönüştür.
+ * Convert Celestia transit result to AstroAK frontend format.
  */
 function adaptTransitResponse(celestiaResult) {
   const adaptTransitList = (list) => list.map(t => ({
@@ -247,7 +247,7 @@ function adaptTransitResponse(celestiaResult) {
     natal_planet: t.natalPlanet,
     type: t.type,
     orb: t.orb,
-    // Ekstra Celestia verileri
+    // Extra Celestia data
     strength: t.strength,
     maxOrb: t.maxOrb,
   }));
@@ -282,25 +282,25 @@ function adaptTransitResponse(celestiaResult) {
 }
 ```
 
-### Doğrulama:
-- `node server.js` hatasız başlamalı (import'lar çalışmalı)
-- Henüz endpoint'ler değişmemiş olacak, mevcut AstrologyAPI hala aktif
+### Verification:
+- `node server.js` should start without errors (imports should work)
+- Endpoints are not changed yet, existing AstrologyAPI is still active
 
-### Beklenen Dönüş:
-- Import hataları var mı?
-- `node server.js` başlıyor mu?
+### Expected Output:
+- Any import errors?
+- Does `node server.js` start?
 
 ---
 
-## ADIM 4: Endpoint'leri Celestia'ya geçir
+## STEP 4: Switch endpoints to Celestia
 
-### Talimat:
+### Instructions:
 
-Her endpoint'i tek tek geçir. Her birini geçirdikten sonra test et.
+Switch each endpoint one by one. Test each one after switching.
 
-### 4a: `/api/natal` endpoint'i
+### 4a: `/api/natal` endpoint
 
-Mevcut AstrologyAPI çağrılarını kaldır, Celestia'yı kullan:
+Remove existing AstrologyAPI calls, use Celestia:
 
 ```js
 app.post('/api/natal', async (req, res) => {
@@ -311,7 +311,7 @@ app.post('/api/natal', async (req, res) => {
       return res.status(400).json({ error: 'Missing required birth data fields' });
     }
 
-    // IANA timezone kullan (Celestia IANA bekliyor, numeric offset değil)
+    // Use IANA timezone (Celestia expects IANA, not numeric offset)
     if (!timezoneName) {
       return res.status(400).json({
         error: 'timezoneName (IANA format) is required',
@@ -333,7 +333,7 @@ app.post('/api/natal', async (req, res) => {
 
     const response = adaptNatalResponse(chart);
 
-    // birthData'yı da ekle (uyumluluk için)
+    // Include birthData for compatibility
     response.birthData = {
       day: parseInt(day),
       month: parseInt(month),
@@ -353,7 +353,7 @@ app.post('/api/natal', async (req, res) => {
 });
 ```
 
-### 4b: `/api/synastry` endpoint'i
+### 4b: `/api/synastry` endpoint
 
 ```js
 app.post('/api/synastry', async (req, res) => {
@@ -401,7 +401,7 @@ app.post('/api/synastry', async (req, res) => {
 });
 ```
 
-### 4c: `/api/transits` endpoint'i
+### 4c: `/api/transits` endpoint
 
 ```js
 app.post('/api/transits', async (req, res) => {
@@ -436,7 +436,7 @@ app.post('/api/transits', async (req, res) => {
       },
       {
         days: 30,
-        startDate: null,  // bugünden başla
+        startDate: null,  // start from today
         topN: 10,
       }
     );
@@ -449,7 +449,7 @@ app.post('/api/transits', async (req, res) => {
 });
 ```
 
-### 4d: `/api/lunar-metrics` endpoint'i
+### 4d: `/api/lunar-metrics` endpoint
 
 ```js
 app.post('/api/lunar-metrics', async (req, res) => {
@@ -460,7 +460,7 @@ app.post('/api/lunar-metrics', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Celestia'nın lunar metrics fonksiyonunu kullan
+    // Use Celestia's lunar metrics function
     const { dateToJD, calculateLunarMetrics: calcLunar } = await import('./celestia/src/transit.js');
     const jd = dateToJD(parseInt(year), parseInt(month), parseInt(day), parseInt(hour || 12));
     const lunar = calcLunar(jd);
@@ -483,76 +483,76 @@ app.post('/api/lunar-metrics', async (req, res) => {
 });
 ```
 
-### 4e: `/api/current-planets` endpoint'i
+### 4e: `/api/current-planets` endpoint
 
-Bu endpoint zaten `data/retrogrades.json` kullanıyor (lokal). **Değişmesine gerek yok.** Ama isterseniz Celestia'nın gerçek zamanlı retrograd tespitini de ekleyebilirsiniz (opsiyonel).
+This endpoint already uses `data/retrogrades.json` (local). **No change needed.** However, you can optionally add Celestia's real-time retrograde detection (optional).
 
-### 4f: `/api/natal-wheel-chart` endpoint'i
+### 4f: `/api/natal-wheel-chart` endpoint
 
-Bu endpoint AstrologyAPI'den SVG alıyordu. **Celestia'da SVG üretimi yok.** Seçenekler:
-- (a) Bu endpoint'i tamamen kaldır, frontend'de wheel chart gösterme
-- (b) Sadece bu endpoint için AstrologyAPI'yi tut
-- (c) Açık kaynak bir SVG chart renderer entegre et (ileride)
+This endpoint fetched SVG from AstrologyAPI. **Celestia does not generate SVGs.** Options:
+- (a) Remove this endpoint entirely, don't show wheel chart on frontend
+- (b) Keep AstrologyAPI only for this endpoint
+- (c) Integrate an open-source SVG chart renderer (in the future)
 
-**Önerilen:** Şimdilik (b) — sadece SVG için AstrologyAPI'yi tut, diğer tüm hesaplamalar Celestia'dan gelsin. İleride (c) ile tamamen bağımsız ol.
+**Recommended:** For now, use option (b) — keep AstrologyAPI only for SVG, all other calculations come from Celestia. Later migrate to (c) for full independence.
 
-### Doğrulama (her endpoint için):
-- Endpoint'e mevcut frontend'den istek at
-- Response formatı doğru mu? (Frontend doğru gösteriyor mu?)
-- AI context doğru oluşuyor mu?
-- Eski AstrologyAPI response'u ile karşılaştır
+### Verification (for each endpoint):
+- Send a request from the existing frontend to the endpoint
+- Is the response format correct? (Does the frontend display correctly?)
+- Is the AI context generated correctly?
+- Compare with the old AstrologyAPI response
 
-### Beklenen Dönüş:
-- Her endpoint testi sonucu
-- Frontend'de görüntüleme sorunları var mı?
-- Hata mesajları varsa paylaş
+### Expected Output:
+- Test results for each endpoint
+- Any display issues on the frontend?
+- Share any error messages
 
 ---
 
-## ADIM 5: Temizlik ve deploy
+## STEP 5: Cleanup and deploy
 
-### Talimat:
+### Instructions:
 
-1. AstrologyAPI ile ilgili kodu kaldır:
-   - `fetchWithTimeout` AstrologyAPI çağrıları
-   - `ASTROLOGY_API_USER_ID` ve `ASTROLOGY_API_KEY` referansları (SVG hariç)
-   - `validateConfig()` içinden AstrologyAPI kontrolü
+1. Remove AstrologyAPI-related code:
+   - `fetchWithTimeout` AstrologyAPI calls
+   - `ASTROLOGY_API_USER_ID` and `ASTROLOGY_API_KEY` references (except SVG)
+   - AstrologyAPI check from `validateConfig()`
 
 2. Render.com environment variables:
-   - `ASTROLOGY_API_USER_ID` → SVG endpoint tutulacaksa kalsın, yoksa kaldır
-   - `ASTROLOGY_API_KEY` → aynı
-   - Yeni env gerekmez (Celestia hiçbir API key kullanmaz)
+   - `ASTROLOGY_API_USER_ID` → keep if SVG endpoint is retained, otherwise remove
+   - `ASTROLOGY_API_KEY` → same
+   - No new env vars needed (Celestia doesn't use any API keys)
 
-3. Render.com build ayarları:
-   - Build command: `npm install` (sweph native derleme için yeterli olmalı)
-   - Node.js version: 18+ olmalı
-   - Eğer sweph derleme hatası alırsan: `apt-get install build-essential` veya Render.com'da "Native Build" seçeneğini etkinleştir
+3. Render.com build settings:
+   - Build command: `npm install` (should be sufficient for sweph native compilation)
+   - Node.js version: must be 18+
+   - If you get sweph compilation errors: `apt-get install build-essential` or enable "Native Build" option on Render.com
 
-4. Deploy et ve tüm endpoint'leri test et.
+4. Deploy and test all endpoints.
 
-### Doğrulama:
-- Render.com build başarılı mı?
-- Tüm endpoint'ler production'da çalışıyor mu?
-- Frontend normal çalışıyor mu?
-- AstrologyAPI faturalandırması durdu mu?
-
----
-
-## KRİTİK NOT: timezoneName Gereksinimi
-
-Celestia IANA timezone string bekliyor (`"Europe/Istanbul"`), numeric offset değil (`3`).
-
-AstroAK frontend zaten `timezoneName` gönderiyor (geo-details API'den geliyor). Ama eski kayıtlarda `timezoneName` olmayabilir.
-
-**Fallback stratejisi:** Eğer `timezoneName` yoksa, mevcut `calculateTimezoneOffset` fonksiyonunu TERSİNE kullanarak numeric offset'ten IANA timezone tahmin etmeye ÇALIŞMA — bu güvenilmez. Bunun yerine:
-1. Frontend'den `timezoneName`'in her zaman gönderildiğinden emin ol
-2. Eski kayıtlar için: kullanıcıdan şehrini tekrar seçmesini iste (bir kerelik)
+### Verification:
+- Is the Render.com build successful?
+- Do all endpoints work in production?
+- Is the frontend working normally?
+- Has AstrologyAPI billing stopped?
 
 ---
 
-## Response Format Özeti
+## CRITICAL NOTE: timezoneName Requirement
 
-### Natal — AstroAK'ın beklediği format:
+Celestia expects an IANA timezone string (`"Europe/Istanbul"`), not a numeric offset (`3`).
+
+The AstroAK frontend already sends `timezoneName` (from the geo-details API). However, older records may not have `timezoneName`.
+
+**Fallback strategy:** If `timezoneName` is missing, DO NOT attempt to guess an IANA timezone from the numeric offset using the existing `calculateTimezoneOffset` function in reverse — this is unreliable. Instead:
+1. Ensure `timezoneName` is always sent from the frontend
+2. For older records: ask the user to re-select their city (one-time)
+
+---
+
+## Response Format Summary
+
+### Natal — Format expected by AstroAK:
 ```json
 {
   "success": true,
@@ -570,7 +570,7 @@ AstroAK frontend zaten `timezoneName` gönderiyor (geo-details API'den geliyor).
 }
 ```
 
-### Synastry — AstroAK'ın beklediği format:
+### Synastry — Format expected by AstroAK:
 ```json
 {
   "success": true,
@@ -584,7 +584,7 @@ AstroAK frontend zaten `timezoneName` gönderiyor (geo-details API'den geliyor).
 }
 ```
 
-### Transit — AstroAK'ın beklediği format:
+### Transit — Format expected by AstroAK:
 ```json
 {
   "success": true,

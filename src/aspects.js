@@ -3,10 +3,10 @@ import { ASPECTS } from './constants.js';
 import { roundTo } from './utils.js';
 
 /**
- * Tüm gök cisimleri arasındaki aspektleri hesapla.
+ * Calculate aspects between all celestial bodies.
  *
- * @param {Array} bodies - Gezegen ve nokta listesi (her biri {name, longitude, speed} içermeli)
- * @returns {Array} Aspekt listesi
+ * @param {Array} bodies - List of planets and points (each must contain {name, longitude, speed})
+ * @returns {Array} List of aspects
  */
 export function calculateAspects(bodies) {
   const aspects = [];
@@ -16,25 +16,25 @@ export function calculateAspects(bodies) {
       const body1 = bodies[i];
       const body2 = bodies[j];
 
-      // Node'lar arası aspekt ve South Node aspektlerini atla (çoğu astrolog dahil etmez)
+      // Skip inter-Node aspects and South Node aspects (most astrologers exclude these)
       if (
         (body1.name === 'True Node' && body2.name === 'South Node') ||
         (body1.name === 'South Node' && body2.name === 'True Node')
       ) continue;
 
-      // İki boylam arasındaki açı (0-180°)
+      // Angular distance between two longitudes (0-180°)
       let diff = Math.abs(body1.longitude - body2.longitude);
       if (diff > 180) diff = 360 - diff;
 
       for (const aspect of ASPECTS) {
-        // Güneş veya Ay içeren aspektlerde orb'u %25 genişlet
+        // Widen orb by 25% for aspects involving the Sun or Moon
         let effectiveOrb = aspect.orb;
         const luminaries = ['Sun', 'Moon'];
         if (luminaries.includes(body1.name) || luminaries.includes(body2.name)) {
           effectiveOrb *= 1.25;
         }
 
-        // ASC/MC aspektlerinde orb'u biraz daralt
+        // Slightly narrow the orb for ASC/MC aspects
         const angles = ['Ascendant', 'Midheaven'];
         if (angles.includes(body1.name) || angles.includes(body2.name)) {
           effectiveOrb *= 0.75;
@@ -43,7 +43,7 @@ export function calculateAspects(bodies) {
         const deviation = Math.abs(diff - aspect.angle);
 
         if (deviation <= effectiveOrb) {
-          // Applying (yaklaşan) vs Separating (uzaklaşan) tespiti
+          // Determine whether the aspect is applying or separating
           const isApplying = determineApplying(body1, body2, aspect.angle);
 
           aspects.push({
@@ -62,43 +62,43 @@ export function calculateAspects(bodies) {
             strength: calculateAspectStrength(deviation, effectiveOrb),
           });
 
-          // Her çift için sadece bir aspekt (en dar orb'lu)
+          // Only one aspect per pair (the one with the tightest orb)
           break;
         }
       }
     }
   }
 
-  // Orb'a göre sırala (en güçlü aspektler önce)
+  // Sort by orb (strongest aspects first)
   return aspects.sort((a, b) => a.orb - b.orb);
 }
 
 /**
- * İki farklı harita arasındaki aspektleri hesapla (cross-chart / synastry aspektleri).
- * Dikdörtgen döngü: her A gezegeni × her B gezegeni.
+ * Calculate aspects between two different charts (cross-chart / synastry aspects).
+ * Rectangular loop: each planet in A x each planet in B.
  *
- * @param {Array} bodiesA - Kişi 1'in gök cisimleri
- * @param {Array} bodiesB - Kişi 2'nin gök cisimleri
- * @returns {Array} Cross-aspekt listesi
+ * @param {Array} bodiesA - Celestial bodies of person 1
+ * @param {Array} bodiesB - Celestial bodies of person 2
+ * @returns {Array} List of cross-aspects
  */
 export function calculateCrossAspects(bodiesA, bodiesB, { orbScale = 1.0 } = {}) {
   const aspects = [];
 
   for (const bodyA of bodiesA) {
     for (const bodyB of bodiesB) {
-      // İki boylam arasındaki açı (0-180°)
+      // Angular distance between two longitudes (0-180°)
       let diff = Math.abs(bodyA.longitude - bodyB.longitude);
       if (diff > 180) diff = 360 - diff;
 
       for (const aspect of ASPECTS) {
-        // orbScale uygula (transit için 0.5, synastry için 1.0)
+        // Apply orbScale (0.5 for transits, 1.0 for synastry)
         let effectiveOrb = aspect.orb * orbScale;
         const luminaries = ['Sun', 'Moon'];
         if (luminaries.includes(bodyA.name) || luminaries.includes(bodyB.name)) {
           effectiveOrb *= 1.25;
         }
 
-        // ASC/MC aspektlerinde orb'u biraz daralt
+        // Slightly narrow the orb for ASC/MC aspects
         const angles = ['Ascendant', 'Midheaven'];
         if (angles.includes(bodyA.name) || angles.includes(bodyB.name)) {
           effectiveOrb *= 0.75;
@@ -125,39 +125,39 @@ export function calculateCrossAspects(bodiesA, bodiesB, { orbScale = 1.0 } = {})
             strength: calculateAspectStrength(deviation, effectiveOrb),
           });
 
-          // Her çift için sadece bir aspekt (en dar orb'lu)
+          // Only one aspect per pair (the one with the tightest orb)
           break;
         }
       }
     }
   }
 
-  // Orb'a göre sırala (en güçlü aspektler önce)
+  // Sort by orb (strongest aspects first)
   return aspects.sort((a, b) => a.orb - b.orb);
 }
 
 /**
- * Aspektin yaklaşan mı (applying) uzaklaşan mı (separating) olduğunu belirle.
- * Daha hızlı gezegen yavaş gezegene doğru hareket ediyorsa = applying
+ * Determine whether an aspect is applying or separating.
+ * If the faster planet is moving toward the slower planet = applying.
  */
 function determineApplying(body1, body2, aspectAngle) {
-  // Her iki cismin de hız verisi yoksa belirlenemez
+  // Cannot determine if neither body has speed data
   if (body1.speed === undefined || body2.speed === undefined) return null;
   if (body1.speed === 0 && body2.speed === 0) return null;
 
-  // Hızlı gezegen = daha büyük mutlak hız
+  // Faster planet = greater absolute speed
   const speed1 = Math.abs(body1.speed);
   const speed2 = Math.abs(body2.speed);
 
-  // Göreceli hareket: hızlı gezegen yavaşa yaklaşıyor mu?
+  // Relative motion: is the faster planet approaching the slower one?
   const relativeSpeed = body1.speed - body2.speed;
 
   let currentDiff = body1.longitude - body2.longitude;
-  // 0-360 aralığında normalize et
+  // Normalize to 0-360 range
   if (currentDiff < 0) currentDiff += 360;
   if (currentDiff > 180) currentDiff = 360 - currentDiff;
 
-  // Bir sonraki "adımda" açı aspekt açısına yaklaşacak mı?
+  // Will the angle approach the aspect angle in the next "step"?
   const futureBody1 = body1.longitude + body1.speed * 0.01;
   const futureBody2 = body2.longitude + body2.speed * 0.01;
 
@@ -171,8 +171,8 @@ function determineApplying(body1, body2, aspectAngle) {
 }
 
 /**
- * Aspekt gücünü 0-100 arasında hesapla.
- * Orb 0° = 100 (tam aspekt), orb = maxOrb = 0 (aspekt sınırında)
+ * Calculate aspect strength on a 0-100 scale.
+ * Orb 0° = 100 (exact aspect), orb = maxOrb = 0 (at the aspect boundary).
  */
 function calculateAspectStrength(deviation, maxOrb) {
   if (maxOrb === 0) return 100;

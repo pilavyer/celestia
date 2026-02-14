@@ -280,14 +280,14 @@ List all supported house systems with descriptions.
 
 ```json
 {
-  "P": { "name": "Placidus", "description": "En yaygın Batı sistemi (varsayılan)" },
-  "K": { "name": "Koch", "description": "Placidus'a benzer, bazı Avrupa astrologları tercih eder" },
-  "W": { "name": "Whole Sign", "description": "En eski sistem, Hellenistik astroloji. Tüm enlemlerde çalışır" },
-  "E": { "name": "Equal", "description": "Her ev 30°, ASC'den başlar" },
-  "B": { "name": "Alcabitius", "description": "Orta Çağ Arap astrolojisi" },
-  "R": { "name": "Regiomontanus", "description": "Horary astrolojide tercih edilir" },
-  "O": { "name": "Porphyry", "description": "En basit quadrant sistemi" },
-  "C": { "name": "Campanus", "description": "Mekan bazlı bölünme" }
+  "P": { "name": "Placidus", "description": "Most common Western system (default)" },
+  "K": { "name": "Koch", "description": "Similar to Placidus, preferred by some European astrologers" },
+  "W": { "name": "Whole Sign", "description": "Oldest system, Hellenistic astrology. Works at all latitudes" },
+  "E": { "name": "Equal", "description": "Each house 30°, starting from ASC" },
+  "B": { "name": "Alcabitius", "description": "Medieval Arabic astrology" },
+  "R": { "name": "Regiomontanus", "description": "Preferred in horary astrology" },
+  "O": { "name": "Porphyry", "description": "Simplest quadrant system" },
+  "C": { "name": "Campanus", "description": "Space-based division" }
 }
 ```
 </details>

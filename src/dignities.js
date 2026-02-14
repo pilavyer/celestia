@@ -3,12 +3,12 @@
 import { SIGN_RULERS } from './constants.js';
 
 /**
- * Geleneksel gezegen dignite (onur/düşüş) tablosu.
- * Domicile = Gezegen kendi burcunda (en güçlü)
- * Exaltation = Yüceltildiği burç
- * Detriment = Zıt burç (zayıf)
- * Fall = Düşüş burcu (en zayıf)
- * Peregrine = Hiçbiri değilse
+ * Traditional planetary dignity (honor/fall) table.
+ * Domicile = Planet in its own sign (strongest)
+ * Exaltation = Sign where the planet is exalted
+ * Detriment = Opposite sign (weak)
+ * Fall = Sign of the planet's fall (weakest)
+ * Peregrine = If none of the above apply
  */
 const DIGNITY_TABLE = {
   Sun:     { domicile: ['Leo'],                  exaltation: ['Aries'],     detriment: ['Aquarius'],            fall: ['Libra'] },
@@ -24,15 +24,15 @@ const DIGNITY_TABLE = {
 };
 
 /**
- * Gezegenin bulunduğu burçtaki dignite durumunu döndürür.
+ * Returns the dignity status of a planet in the given sign.
  *
- * @param {string} planetName - Gezegen adı (İngilizce)
- * @param {string} sign - Burç adı (İngilizce)
+ * @param {string} planetName - Planet name (English)
+ * @param {string} sign - Sign name (English)
  * @returns {string|null} 'domicile' | 'exaltation' | 'detriment' | 'fall' | 'peregrine' | null
  */
 export function getDignity(planetName, sign) {
   const table = DIGNITY_TABLE[planetName];
-  if (!table) return null; // Chiron, Node'lar vs. için dignite yok
+  if (!table) return null; // No dignity data for Chiron, Nodes, etc.
 
   if (table.domicile.includes(sign))   return 'domicile';
   if (table.exaltation.includes(sign)) return 'exaltation';
@@ -42,7 +42,7 @@ export function getDignity(planetName, sign) {
 }
 
 /**
- * Türkçe dignite karşılığı
+ * Turkish translation of dignity status.
  */
 export function getDignityTr(dignity) {
   const map = {
@@ -56,10 +56,10 @@ export function getDignityTr(dignity) {
 }
 
 /**
- * Burcun modern yönetici gezegenini döndürür.
+ * Returns the modern ruling planet of a sign.
  *
- * @param {string} sign - Burç adı (İngilizce)
- * @returns {string|null} Gezegen adı veya null
+ * @param {string} sign - Sign name (English)
+ * @returns {string|null} Planet name or null
  */
 export function getSignRuler(sign) {
   return SIGN_RULERS[sign] || null;

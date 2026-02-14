@@ -92,7 +92,7 @@ npm run compare  # Run compare.js (dev utility, not committed)
 - Tests 6-8: Synastry (basic, house overlay, composite midpoint)
 - Tests 9-13: Transit (response shape, orb validation, event timing, lunar metrics, aspect angle validation)
 
-Run with `node test.js` — all tests should print "BASARILI" (success).
+Run with `node test.js` — all tests should print "PASS".
 
 ## Security
 

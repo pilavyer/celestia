@@ -25,73 +25,73 @@ const { version } = require('../package.json');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ephemeris dosya yolunu ayarla
-// KRİTİK: Bu fonksiyon TÜM hesaplamalardan önce çağrılmalı
-// Dahili initialization yapar, null geçilse bile çağrılması şart
+// Set the ephemeris file path
+// CRITICAL: This function must be called before ALL calculations
+// Performs internal initialization; must be called even if null is passed
 const ephePath = path.join(__dirname, '..', 'ephe');
 swe.set_ephe_path(ephePath);
 
 /**
- * Tam doğum haritası hesapla.
+ * Calculate full natal chart.
  *
- * @param {object} params - Doğum bilgileri
- * @param {number} params.year - Doğum yılı
- * @param {number} params.month - Doğum ayı (1-12)
- * @param {number} params.day - Doğum günü
- * @param {number} params.hour - Doğum saati (0-23)
- * @param {number} params.minute - Doğum dakikası (0-59)
- * @param {number} params.latitude - Doğum yeri enlemi (kuzey pozitif)
- * @param {number} params.longitude - Doğum yeri boylamı (doğu pozitif, BATI NEGATİF)
- * @param {string} params.timezone - IANA timezone (örn: "Europe/Istanbul")
- * @param {string} [params.houseSystem='P'] - Ev sistemi kodu (varsayılan: Placidus)
- * @returns {object} Tam doğum haritası verisi
+ * @param {object} params - Birth data
+ * @param {number} params.year - Birth year
+ * @param {number} params.month - Birth month (1-12)
+ * @param {number} params.day - Birth day
+ * @param {number} params.hour - Birth hour (0-23)
+ * @param {number} params.minute - Birth minute (0-59)
+ * @param {number} params.latitude - Birth place latitude (north positive)
+ * @param {number} params.longitude - Birth place longitude (east positive, WEST NEGATIVE)
+ * @param {string} params.timezone - IANA timezone (e.g., "Europe/Istanbul")
+ * @param {string} [params.houseSystem='P'] - House system code (default: Placidus)
+ * @returns {object} Full natal chart data
  */
 export function calculateNatalChart({
   year, month, day, hour, minute,
   latitude, longitude, timezone,
   houseSystem = 'P'
 }) {
-  // ========== GİRDİ DOĞRULAMA ==========
+  // ========== INPUT VALIDATION ==========
 
   if (!HOUSE_SYSTEMS[houseSystem]) {
     throw new Error(
-      `Geçersiz ev sistemi: "${houseSystem}". ` +
-      `Desteklenen sistemler: ${Object.keys(HOUSE_SYSTEMS).join(', ')}`
+      `Invalid house system: "${houseSystem}". ` +
+      `Supported systems: ${Object.keys(HOUSE_SYSTEMS).join(', ')}`
     );
   }
 
   if (latitude < -90 || latitude > 90) {
-    throw new Error(`Geçersiz enlem: ${latitude}. -90 ile 90 arasında olmalı.`);
+    throw new Error(`Invalid latitude: ${latitude}. Must be between -90 and 90.`);
   }
 
   if (longitude < -180 || longitude > 180) {
-    throw new Error(`Geçersiz boylam: ${longitude}. -180 ile 180 arasında olmalı.`);
+    throw new Error(`Invalid longitude: ${longitude}. Must be between -180 and 180.`);
   }
 
   if (month < 1 || month > 12) {
-    throw new Error(`Geçersiz ay: ${month}. 1-12 arasında olmalı.`);
+    throw new Error(`Invalid month: ${month}. Must be between 1 and 12.`);
   }
 
   if (day < 1 || day > 31) {
-    throw new Error(`Geçersiz gün: ${day}. 1-31 arasında olmalı.`);
+    throw new Error(`Invalid day: ${day}. Must be between 1 and 31.`);
   }
 
   if (hour < 0 || hour > 23) {
-    throw new Error(`Geçersiz saat: ${hour}. 0-23 arasında olmalı.`);
+    throw new Error(`Invalid hour: ${hour}. Must be between 0 and 23.`);
   }
 
   if (minute < 0 || minute > 59) {
-    throw new Error(`Geçersiz dakika: ${minute}. 0-59 arasında olmalı.`);
+    throw new Error(`Invalid minute: ${minute}. Must be between 0 and 59.`);
   }
 
-  // ========== TIMEZONE DÖNÜŞÜMÜ ==========
+  // ========== TIMEZONE CONVERSION ==========
 
   const utcData = birthTimeToUTC(year, month, day, hour, minute, timezone);
 
-  // ========== JULIAN DAY HESABI ==========
+  // ========== JULIAN DAY CALCULATION ==========
 
-  // utc_to_jd hem jd_et (Ephemeris Time) hem jd_ut (Universal Time) döndürür
-  // KRİTİK: julday() yerine utc_to_jd() kullan — ΔT dönüşümünü otomatik yapar
+  // utc_to_jd returns both jd_et (Ephemeris Time) and jd_ut (Universal Time)
+  // CRITICAL: Use utc_to_jd() instead of julday() — it handles the ΔT conversion automatically
   const jdResult = swe.utc_to_jd(
     utcData.utcYear,
     utcData.utcMonth,
@@ -102,30 +102,30 @@ export function calculateNatalChart({
     swe.constants.SE_GREG_CAL
   );
 
-  // jdResult.data[0] = JD in ET (Ephemeris Time) — gezegen hesapları için
-  // jdResult.data[1] = JD in UT (Universal Time) — ev hesapları için
+  // jdResult.data[0] = JD in ET (Ephemeris Time) — for planet calculations
+  // jdResult.data[1] = JD in UT (Universal Time) — for house calculations
   const jd_et = jdResult.data[0];
   const jd_ut = jdResult.data[1];
 
-  // ========== GEZEGEN POZİSYONLARI ==========
+  // ========== PLANET POSITIONS ==========
 
-  // SEFLG_SWIEPH: Swiss Ephemeris dosyalarını kullan (yoksa Moshier'e fallback)
-  // SEFLG_SPEED: Hız verisi de döndür (retrograd tespiti için şart)
+  // SEFLG_SWIEPH: Use Swiss Ephemeris files (falls back to Moshier if unavailable)
+  // SEFLG_SPEED: Also return speed data (required for retrograde detection)
   const calcFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_SPEED;
 
   const planets = CELESTIAL_BODIES.map(body => {
     const result = swe.calc_ut(jd_et, body.id, calcFlags);
 
-    // result.flag kontrol et — input flag'den farklıysa Moshier fallback olmuş olabilir
+    // Check result.flag — if it differs from the input flags, Moshier fallback may have occurred
     const usedMoshier = (result.flag & swe.constants.SEFLG_SWIEPH) === 0;
 
-    // result.data dizisi:
-    // [0] = ekliptik boylam (0-360°)
-    // [1] = ekliptik enlem
-    // [2] = mesafe (AU)
-    // [3] = boylam hızı (°/gün) — negatif = retrograd
-    // [4] = enlem hızı
-    // [5] = mesafe hızı
+    // result.data array:
+    // [0] = ecliptic longitude (0-360°)
+    // [1] = ecliptic latitude
+    // [2] = distance (AU)
+    // [3] = longitude speed (°/day) — negative = retrograde
+    // [4] = latitude speed
+    // [5] = distance speed
     const lon = result.data[0];
     const lat = result.data[1];
     const distance = result.data[2];
@@ -153,7 +153,7 @@ export function calculateNatalChart({
     };
   });
 
-  // Güney Düğümü hesapla (Kuzey Düğümü + 180°)
+  // Calculate South Node (North Node + 180°)
   const northNode = planets.find(p => p.name === 'True Node');
   if (northNode) {
     const southLon = (northNode.longitude + 180) % 360;
@@ -179,18 +179,18 @@ export function calculateNatalChart({
     });
   }
 
-  // ========== EV HESABI ==========
+  // ========== HOUSE CALCULATION ==========
 
-  // KRİTİK: houses fonksiyonu jd_ut (Universal Time) alır, jd_et DEĞİL!
-  // KRİTİK: Swiss Ephemeris batı boylamı için NEGATİF değer bekler
+  // CRITICAL: The houses function takes jd_ut (Universal Time), NOT jd_et!
+  // CRITICAL: Swiss Ephemeris expects NEGATIVE values for western longitudes
   const housesResult = swe.houses(jd_ut, latitude, longitude, houseSystem);
 
-  // housesResult.data.houses: 0-indexed dizi (houses[0] = Ev 1, houses[11] = Ev 12)
+  // housesResult.data.houses: 0-indexed array (houses[0] = House 1, houses[11] = House 12)
   // housesResult.data.points: [ASC, MC, ARMC, Vertex, EquatorialASC, co-ASC Koch, co-ASC Munkasey, PolarASC]
   const rawHouses = housesResult.data.houses;
   const points = housesResult.data.points;
 
-  // 1-indexed cusps dizisine çevir (cusps[1]-cusps[12], cusps[0] boş)
+  // Convert to 1-indexed cusps array (cusps[1]-cusps[12], cusps[0] is empty)
   const cusps = [0, ...rawHouses];
 
   const ascendant = points[0];
@@ -198,18 +198,18 @@ export function calculateNatalChart({
   const armc = points[2]; // Sidereal time (ARMC)
   const vertex = points[3];
 
-  // Polar enlem uyarısı (Placidus ve Koch ~66.5° üstünde başarısız olur)
+  // Polar latitude warning (Placidus and Koch fail above ~66.5°)
   const warnings = [...utcData.warnings];
 
   if (['P', 'K'].includes(houseSystem) && Math.abs(latitude) > 66) {
     warnings.push(
-      `${HOUSE_SYSTEMS[houseSystem].name} ev sistemi ${Math.abs(latitude)}° enlemde güvenilir olmayabilir. ` +
-      `Kutup bölgelerinde Whole Sign ("W") sistemi önerilir. ` +
-      `Swiss Ephemeris otomatik olarak Porphyry'e geçmiş olabilir.`
+      `${HOUSE_SYSTEMS[houseSystem].name} house system may be unreliable at ${Math.abs(latitude)}° latitude. ` +
+      `Whole Sign ("W") system is recommended for polar regions. ` +
+      `Swiss Ephemeris may have automatically switched to Porphyry.`
     );
   }
 
-  // Ev cusp'larını detaylı formata çevir
+  // Convert house cusps to detailed format
   const houses = [];
   for (let i = 1; i <= 12; i++) {
     const cuspData = longitudeToSign(cusps[i]);
@@ -223,15 +223,15 @@ export function calculateNatalChart({
     });
   }
 
-  // Ascendant ve MC detaylı
+  // Ascendant and MC detailed
   const ascData = longitudeToSign(ascendant);
   const mcData = longitudeToSign(midheaven);
   const vtxData = longitudeToSign(vertex);
 
-  // Her gezegenin hangi evde olduğunu bul
+  // Find which house each planet is in
   const sunPlanet = planets.find(p => p.name === 'Sun');
 
-  // Gündüz/gece haritası tespiti (Güneş ufkun üstünde mi?)
+  // Day/night chart detection (is the Sun above the horizon?)
   const isDayChart = sunPlanet ? isAboveHorizon(sunPlanet.longitude, ascendant) : true;
 
   const planetsWithHouses = planets.map(planet => {
@@ -242,9 +242,9 @@ export function calculateNatalChart({
     };
   });
 
-  // ========== ASPEKTLER ==========
+  // ========== ASPECTS ==========
 
-  // Ascendant ve MC'yi de aspekt hesabına dahil et
+  // Include Ascendant and MC in aspect calculations
   const aspectBodies = [
     ...planetsWithHouses,
     { name: 'Ascendant', trName: 'Yükselen', longitude: ascendant, speed: 0 },
@@ -253,7 +253,7 @@ export function calculateNatalChart({
 
   const aspects = calculateAspects(aspectBodies);
 
-  // ========== CHART ANALİZİ ==========
+  // ========== CHART ANALYSIS ==========
 
   const sun = planetsWithHouses.find(p => p.name === 'Sun');
   const moon = planetsWithHouses.find(p => p.name === 'Moon');
@@ -262,20 +262,20 @@ export function calculateNatalChart({
   const partOfFortune = calculatePartOfFortune(ascendant, sun?.longitude, moon?.longitude, isDayChart);
   const pofData = longitudeToSign(partOfFortune);
 
-  // Ay fazı
+  // Moon phase
   const moonPhase = moon && sun ? determineMoonPhase(sun.longitude, moon.longitude) : null;
 
-  // Element ve modalite dağılımı
+  // Element and modality distribution
   const elementDist = getElementDistribution(planetsWithHouses);
   const modalityDist = getModalityDistribution(planetsWithHouses);
 
-  // Hemisfer vurgusu
+  // Hemisphere emphasis
   const hemisphereEmphasis = determineHemisphereEmphasis(planetsWithHouses, ascendant, midheaven);
 
-  // Stellium tespiti (aynı burçta 3+ gezegen)
+  // Stellium detection (3+ planets in the same sign)
   const stelliums = findStelliums(planetsWithHouses);
 
-  // Harita lordu (yükselen burcun yöneticisi)
+  // Chart ruler (ruler of the rising sign)
   const chartRulerName = getSignRuler(ascData.sign);
   const chartRulerPlanet = planetsWithHouses.find(p => p.name === chartRulerName);
   const chartRuler = chartRulerPlanet ? {
@@ -289,7 +289,7 @@ export function calculateNatalChart({
     formattedPosition: chartRulerPlanet.formattedPosition,
   } : null;
 
-  // Ev lordları (her evin cusp burcunun yöneticisi + konumu)
+  // House rulers (ruler of each house cusp sign + its position)
   const houseRulers = houses.map(h => {
     const rulerName = getSignRuler(h.sign);
     const rulerPlanet = planetsWithHouses.find(p => p.name === rulerName);
@@ -306,7 +306,7 @@ export function calculateNatalChart({
     };
   });
 
-  // ========== SONUÇ ==========
+  // ========== RESULT ==========
 
   return {
     input: {
@@ -373,7 +373,7 @@ export function calculateNatalChart({
       julianDayET: roundTo(jd_et, 8),
       julianDayUT: roundTo(jd_ut, 8),
       siderealTime: roundTo(armc, 6),
-      deltaT: roundTo((jd_et - jd_ut) * 86400, 2), // saniye cinsinden
+      deltaT: roundTo((jd_et - jd_ut) * 86400, 2), // in seconds
       ephemerisMode: planetsWithHouses.some(p => p.usedMoshierFallback) ? 'Moshier (fallback)' : 'Swiss Ephemeris',
       engine: 'sweph (Swiss Ephemeris Node.js binding)',
       version,
@@ -382,7 +382,7 @@ export function calculateNatalChart({
   };
 }
 
-// ========== YARDIMCI FONKSİYONLAR ==========
+// ========== HELPER FUNCTIONS ==========
 
 function isAboveHorizon(planetLon, ascLon) {
   const desc = (ascLon + 180) % 360;
@@ -394,7 +394,7 @@ function isAboveHorizon(planetLon, ascLon) {
 }
 
 function findStelliums(planets) {
-  // Güneş, Ay ve geleneksel gezegenler (Chiron, Node'lar hariç)
+  // Sun, Moon, and traditional planets (excluding Chiron and Nodes)
   const mainPlanets = planets.filter(p =>
     ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'].includes(p.name)
   );

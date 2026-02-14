@@ -2,72 +2,72 @@
 import { DateTime } from 'luxon';
 
 /**
- * Doğum zamanını yerel saatten UTC'ye çevirir.
+ * Converts birth time from local time to UTC.
  *
- * KRİTİK NOTLAR:
- * - Ham UTC offset (örn. "+3") KULLANMA, her zaman IANA timezone ID kullan
- * - IANA ID'ler tarihsel DST değişikliklerini kodlar
- * - Türkiye örneği: 2016 öncesi UTC+2/+3 (DST), 2016 sonrası sabit UTC+3
+ * CRITICAL NOTES:
+ * - Never use raw UTC offsets (e.g. "+3"), always use IANA timezone IDs
+ * - IANA IDs encode historical DST changes
+ * - Turkey example: before 2016 UTC+2/+3 (DST), after 2016 fixed UTC+3
  *
- * @param {number} year - Doğum yılı
- * @param {number} month - Doğum ayı (1-12, JavaScript'in 0-based Date'inden farklı!)
- * @param {number} day - Doğum günü
- * @param {number} hour - Doğum saati (0-23)
- * @param {number} minute - Doğum dakikası (0-59)
- * @param {string} timezone - IANA timezone ID (örn: "Europe/Istanbul", "America/New_York")
- * @returns {object} UTC bilgileri ve uyarılar
+ * @param {number} year - Birth year
+ * @param {number} month - Birth month (1-12, unlike JavaScript's 0-based Date!)
+ * @param {number} day - Birth day
+ * @param {number} hour - Birth hour (0-23)
+ * @param {number} minute - Birth minute (0-59)
+ * @param {string} timezone - IANA timezone ID (e.g. "Europe/Istanbul", "America/New_York")
+ * @returns {object} UTC information and warnings
  */
 export function birthTimeToUTC(year, month, day, hour, minute, timezone) {
-  // IANA timezone doğrulama
+  // IANA timezone validation
   const testZone = DateTime.now().setZone(timezone);
   if (!testZone.isValid) {
-    throw new Error(`Geçersiz timezone: "${timezone}". IANA formatı kullanın (örn: "Europe/Istanbul")`);
+    throw new Error(`Invalid timezone: "${timezone}". Use IANA format (e.g. "Europe/Istanbul")`);
   }
 
-  // Yerel zamanı oluştur
+  // Construct local time
   const local = DateTime.fromObject(
     { year, month, day, hour, minute, second: 0 },
     { zone: timezone }
   );
 
-  // DST spring-forward gap kontrolü
-  // Örnek: Saat 02:00'den 03:00'e atladığında 02:30 geçersizdir
+  // DST spring-forward gap check
+  // Example: When clock jumps from 02:00 to 03:00, 02:30 is invalid
   if (!local.isValid) {
     throw new Error(
-      `Geçersiz zaman: ${year}-${month}-${day} ${hour}:${minute} "${timezone}" timezone'unda mevcut değil. ` +
-      `Muhtemelen yaz saati geçişi nedeniyle bu saat atlanmış. ` +
-      `Sebep: ${local.invalidReason}. Açıklama: ${local.invalidExplanation}`
+      `Invalid time: ${year}-${month}-${day} ${hour}:${minute} does not exist in timezone "${timezone}". ` +
+      `This time was likely skipped due to a daylight saving time transition. ` +
+      `Reason: ${local.invalidReason}. Explanation: ${local.invalidExplanation}`
     );
   }
 
-  // UTC'ye dönüştür
+  // Convert to UTC
   const utc = local.toUTC();
 
-  // Uyarılar oluştur
+  // Build warnings
   const warnings = [];
 
   if (year < 1970) {
     warnings.push(
-      '1970 öncesi timezone verileri güvenilir olmayabilir. ' +
-      'astro.com atlas ile çapraz kontrol önerilir.'
+      'Timezone data before 1970 may not be reliable. ' +
+      'Cross-checking with astro.com atlas is recommended.'
     );
   }
 
   if (year < 1883 && timezone.startsWith('America/')) {
     warnings.push(
-      '1883 öncesi ABD\'de standart zaman dilimleri yoktu. ' +
-      'Yerel güneş saati (LMT) kullanılıyor olabilir.'
+      'Standard time zones did not exist in the US before 1883. ' +
+      'Local Mean Time (LMT) may have been used.'
     );
   }
 
-  // DST fall-back ambiguity kontrolü (aynı saat iki kez yaşanır)
-  // Luxon bu durumda ilk oluşumu (DST saatini) tercih eder
+  // DST fall-back ambiguity check (the same clock time occurs twice)
+  // Luxon prefers the first occurrence (DST time) in this case
   const oneHourLater = local.plus({ hours: 1 });
   if (local.offset !== oneHourLater.offset && local.isInDST) {
     warnings.push(
-      'Bu zaman DST geçiş saatine denk geliyor. ' +
-      'Aynı saat iki kez yaşanmış olabilir (DST ve standart). ' +
-      'DST versiyonu kullanıldı.'
+      'This time coincides with a DST transition. ' +
+      'The same clock time may have occurred twice (DST and standard). ' +
+      'The DST version was used.'
     );
   }
 
@@ -78,35 +78,35 @@ export function birthTimeToUTC(year, month, day, hour, minute, timezone) {
     utcHour: utc.hour,
     utcMinute: utc.minute,
     utcSecond: utc.second,
-    // Ondalıklı saat (Swiss Ephemeris'in julday fonksiyonu için)
+    // Decimal hour (for Swiss Ephemeris julday function)
     utcDecimalHour: utc.hour + utc.minute / 60 + utc.second / 3600,
-    // Offset bilgisi (dakika cinsinden)
+    // Offset information (in minutes)
     offsetMinutes: local.offset,
     offsetHours: local.offset / 60,
-    // DST durumu
+    // DST status
     isDST: local.isInDST,
-    // Orijinal girdi (debug için)
+    // Original input (for debugging)
     originalInput: {
       localTime: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
       timezone,
       utcTime: utc.toISO(),
     },
-    // Uyarılar
+    // Warnings
     warnings,
   };
 }
 
 /**
- * Koordinatlardan IANA timezone tahmin et.
- * NOT: Bu basit bir yaklaşım. Production'da Google Time Zone API veya
- * timezonefinder gibi bir servis kullanmak daha doğru olur.
+ * Get information about an IANA timezone.
+ * NOTE: This is a simple approach. In production, using Google Time Zone API or
+ * a service like timezonefinder would be more accurate.
  *
- * Bilinen önemli timezone'lar:
- * - Türkiye: "Europe/Istanbul" (tüm Türkiye için geçerli, 2016'dan beri UTC+3 sabit)
- * - Doğu ABD: "America/New_York"
- * - Batı ABD: "America/Los_Angeles"
- * - Brezilya: "America/Sao_Paulo"
- * - Hindistan: "Asia/Kolkata"
+ * Notable timezones:
+ * - Turkey: "Europe/Istanbul" (applies to all of Turkey, fixed UTC+3 since 2016)
+ * - Eastern US: "America/New_York"
+ * - Western US: "America/Los_Angeles"
+ * - Brazil: "America/Sao_Paulo"
+ * - India: "Asia/Kolkata"
  */
 export function getTimezoneInfo(timezone) {
   const now = DateTime.now().setZone(timezone);

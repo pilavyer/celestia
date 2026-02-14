@@ -11,23 +11,23 @@ import {
 import { getDignity } from './dignities.js';
 
 /**
- * İki boylam arasındaki midpoint'i hesapla.
- * 0°/360° wrap-around'ı doğru handle eder.
+ * Calculate the midpoint between two longitudes.
+ * Correctly handles the 0°/360° wrap-around.
  *
- * @param {number} lon1 - Birinci boylam (0-360°)
- * @param {number} lon2 - İkinci boylam (0-360°)
- * @returns {number} Midpoint boylam (0-360°)
+ * @param {number} lon1 - First longitude (0-360°)
+ * @param {number} lon2 - Second longitude (0-360°)
+ * @returns {number} Midpoint longitude (0-360°)
  */
 export function midpoint(lon1, lon2) {
   let diff = Math.abs(lon1 - lon2);
 
   if (diff <= 180) {
-    // Kısa yoldan midpoint
+    // Short-arc midpoint
     let mid = (lon1 + lon2) / 2;
     if (mid < 0) mid += 360;
     return mid % 360;
   } else {
-    // Uzun yoldan midpoint — 180° ekleyip kısa yoldan al
+    // Long-arc midpoint — add 180° and take the short-arc
     let mid = (lon1 + lon2) / 2 + 180;
     if (mid < 0) mid += 360;
     return mid % 360;
@@ -35,20 +35,20 @@ export function midpoint(lon1, lon2) {
 }
 
 /**
- * Tam synastry hesapla: iki kişinin natal haritaları, cross-aspektler,
- * house overlay ve composite chart.
+ * Calculate full synastry: natal charts for both persons, cross-aspects,
+ * house overlay, and composite chart.
  *
- * @param {object} person1Data - Kişi 1'in doğum bilgileri (calculateNatalChart parametreleri)
- * @param {object} person2Data - Kişi 2'nin doğum bilgileri
- * @returns {object} Synastry sonucu
+ * @param {object} person1Data - Person 1's birth data (calculateNatalChart parameters)
+ * @param {object} person2Data - Person 2's birth data
+ * @returns {object} Synastry result
  */
 export function calculateSynastry(person1Data, person2Data) {
-  // ========== NATAL HARITALAR ==========
+  // ========== NATAL CHARTS ==========
   const chart1 = calculateNatalChart(person1Data);
   const chart2 = calculateNatalChart(person2Data);
 
   // ========== CROSS-ASPECTS ==========
-  // Her iki haritanın gezegenleri + ASC/MC dahil
+  // Planets from both charts + ASC/MC included
   const bodies1 = [
     ...chart1.planets,
     { name: 'Ascendant', trName: 'Yükselen', longitude: chart1.houses.ascendant.longitude, speed: 0 },
@@ -63,7 +63,7 @@ export function calculateSynastry(person1Data, person2Data) {
   const crossAspects = calculateCrossAspects(bodies1, bodies2);
 
   // ========== HOUSE OVERLAY ==========
-  // Kişi 1'in gezegenleri kişi 2'nin evlerinde
+  // Person 1's planets in Person 2's houses
   const cusps2 = [0, ...chart2.houses.cusps.map(h => h.cusp)];
   const person1InPerson2Houses = chart1.planets.map(planet => ({
     planet: planet.name,
@@ -73,7 +73,7 @@ export function calculateSynastry(person1Data, person2Data) {
     house: findPlanetInHouse(planet.longitude, cusps2),
   }));
 
-  // Kişi 2'nin gezegenleri kişi 1'in evlerinde
+  // Person 2's planets in Person 1's houses
   const cusps1 = [0, ...chart1.houses.cusps.map(h => h.cusp)];
   const person2InPerson1Houses = chart2.planets.map(planet => ({
     planet: planet.name,
@@ -86,7 +86,7 @@ export function calculateSynastry(person1Data, person2Data) {
   // ========== COMPOSITE CHART ==========
   const composite = calculateComposite(chart1, chart2);
 
-  // ========== SONUÇ ==========
+  // ========== RESULT ==========
   return {
     person1: {
       input: chart1.input,
@@ -114,11 +114,11 @@ export function calculateSynastry(person1Data, person2Data) {
 }
 
 /**
- * Composite chart hesapla (midpoint metodu).
- * Her gezegen çifti, ASC, MC ve ev cusps'ları için midpoint alınır.
+ * Calculate composite chart (midpoint method).
+ * Midpoints are computed for each planet pair, ASC, MC, and house cusps.
  */
 function calculateComposite(chart1, chart2) {
-  // Composite gezegen pozisyonları
+  // Composite planet positions
   const compositePlanets = [];
 
   for (const p1 of chart1.planets) {
@@ -127,7 +127,7 @@ function calculateComposite(chart1, chart2) {
 
     const mid = midpoint(p1.longitude, p2.longitude);
     const signData = longitudeToSign(mid);
-    // Midpoint hız: iki hızın ortalaması
+    // Midpoint speed: average of both speeds
     const avgSpeed = (p1.speed + p2.speed) / 2;
 
     compositePlanets.push({
@@ -146,14 +146,14 @@ function calculateComposite(chart1, chart2) {
     });
   }
 
-  // Composite ASC ve MC
+  // Composite ASC and MC
   const compAsc = midpoint(chart1.houses.ascendant.longitude, chart2.houses.ascendant.longitude);
   const compMc = midpoint(chart1.houses.midheaven.longitude, chart2.houses.midheaven.longitude);
 
   const ascData = longitudeToSign(compAsc);
   const mcData = longitudeToSign(compMc);
 
-  // Composite ev cusps (midpoint)
+  // Composite house cusps (midpoint)
   const compositeHouseCusps = [];
   for (let i = 0; i < 12; i++) {
     const cusp1 = chart1.houses.cusps[i].cusp;
@@ -171,16 +171,16 @@ function calculateComposite(chart1, chart2) {
     });
   }
 
-  // Composite cusps dizisi (1-indexed, findPlanetInHouse için)
+  // Composite cusps array (1-indexed, for findPlanetInHouse)
   const compCusps = [0, ...compositeHouseCusps.map(h => h.cusp)];
 
-  // Composite gezegenler + ev ataması
+  // Composite planets + house assignment
   const compositePlanetsWithHouses = compositePlanets.map(planet => ({
     ...planet,
     house: findPlanetInHouse(planet.longitude, compCusps),
   }));
 
-  // Composite aspektler
+  // Composite aspects
   const aspectBodies = [
     ...compositePlanetsWithHouses,
     { name: 'Ascendant', trName: 'Yükselen', longitude: compAsc, speed: 0 },
@@ -188,11 +188,11 @@ function calculateComposite(chart1, chart2) {
   ];
   const compositeAspects = calculateAspects(aspectBodies);
 
-  // Composite vertex (midpoint)
+  // Composite Vertex (midpoint)
   const compVertex = midpoint(chart1.houses.vertex.longitude, chart2.houses.vertex.longitude);
   const vtxData = longitudeToSign(compVertex);
 
-  // Element ve modalite dağılımı
+  // Element and modality distribution
   const elementDist = getElementDistribution(compositePlanetsWithHouses);
   const modalityDist = getModalityDistribution(compositePlanetsWithHouses);
 

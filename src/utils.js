@@ -2,18 +2,18 @@
 import { SIGNS, ELEMENTS, MODALITIES } from './constants.js';
 
 /**
- * Ekliptik boylamı burç, derece, dakika, saniyeye çevirir.
+ * Converts ecliptic longitude to sign, degree, minute, and second.
  *
- * @param {number} longitude - 0-360° ekliptik boylam
+ * @param {number} longitude - 0-360° ecliptic longitude
  * @returns {object} {sign, signIndex, degree, minute, second}
  */
 export function longitudeToSign(longitude) {
-  // Negatif veya 360+ değerleri normalize et
+  // Normalize negative or 360+ values
   let lon = longitude % 360;
   if (lon < 0) lon += 360;
 
   const signIndex = Math.floor(lon / 30);
-  const posInSign = lon % 30; // 0-30° arası
+  const posInSign = lon % 30; // 0-30° range
 
   const degree = Math.floor(posInSign);
   const fractional = (posInSign - degree) * 60;
@@ -25,13 +25,13 @@ export function longitudeToSign(longitude) {
     signIndex,
     degree,
     minute,
-    second: second >= 60 ? 59 : second, // Yuvarlama taşmasını önle
+    second: second >= 60 ? 59 : second, // Prevent rounding overflow
   };
 }
 
 /**
- * Ay fazını belirle.
- * Güneş-Ay açısına göre 8 faz döndürür.
+ * Determine the Moon phase.
+ * Returns one of 8 phases based on the Sun-Moon angle.
  */
 export function determineMoonPhase(sunLon, moonLon) {
   let angle = moonLon - sunLon;
@@ -49,9 +49,9 @@ export function determineMoonPhase(sunLon, moonLon) {
 }
 
 /**
- * Part of Fortune (Fortuna Noktası) hesapla.
- * Gündüz: ASC + Moon - Sun
- * Gece: ASC + Sun - Moon
+ * Calculate Part of Fortune (Pars Fortunae).
+ * Day chart: ASC + Moon - Sun
+ * Night chart: ASC + Sun - Moon
  */
 export function calculatePartOfFortune(ascLon, sunLon, moonLon, isDayChart) {
   if (sunLon === undefined || moonLon === undefined) return 0;
@@ -63,7 +63,7 @@ export function calculatePartOfFortune(ascLon, sunLon, moonLon, isDayChart) {
     pof = ascLon + sunLon - moonLon;
   }
 
-  // 0-360 aralığına normalize
+  // Normalize to 0-360 range
   pof = pof % 360;
   if (pof < 0) pof += 360;
 
@@ -71,7 +71,7 @@ export function calculatePartOfFortune(ascLon, sunLon, moonLon, isDayChart) {
 }
 
 /**
- * Element dağılımını hesapla (Ateş/Toprak/Hava/Su)
+ * Calculate element distribution (Fire/Earth/Air/Water).
  */
 export function getElementDistribution(planets) {
   const mainPlanets = planets.filter(p =>
@@ -89,13 +89,13 @@ export function getElementDistribution(planets) {
     }
   });
 
-  // En baskın element
+  // Most dominant element
   const dominant = Object.entries(dist).sort((a, b) => b[1] - a[1])[0];
   return { ...dist, dominant: dominant[0] };
 }
 
 /**
- * Modalite dağılımını hesapla (Kardinal/Sabit/Değişken)
+ * Calculate modality distribution (Cardinal/Fixed/Mutable).
  */
 export function getModalityDistribution(planets) {
   const mainPlanets = planets.filter(p =>
@@ -118,8 +118,8 @@ export function getModalityDistribution(planets) {
 }
 
 /**
- * Hemisfer vurgusunu hesapla.
- * Kuzey/Güney (ASC-DSC eksenine göre) ve Doğu/Batı (MC-IC eksenine göre)
+ * Calculate hemisphere emphasis.
+ * North/South (relative to ASC-DSC axis) and East/West (relative to MC-IC axis).
  */
 export function determineHemisphereEmphasis(planets, ascLon, mcLon) {
   const mainPlanets = planets.filter(p =>
@@ -132,13 +132,13 @@ export function determineHemisphereEmphasis(planets, ascLon, mcLon) {
   let southern = 0, northern = 0, eastern = 0, western = 0;
 
   mainPlanets.forEach(p => {
-    // Güney yarıküre = evler 7-12 (ufkun üstü)
-    // Kuzey yarıküre = evler 1-6 (ufkun altı)
+    // Southern hemisphere = houses 7-12 (above the horizon)
+    // Northern hemisphere = houses 1-6 (below the horizon)
     if (p.house >= 7) southern++;
     else northern++;
 
-    // Doğu yarıküre = evler 10-3 (ASC tarafı)
-    // Batı yarıküre = evler 4-9 (DSC tarafı)
+    // Eastern hemisphere = houses 10-3 (ASC side)
+    // Western hemisphere = houses 4-9 (DSC side)
     if ([10, 11, 12, 1, 2, 3].includes(p.house)) eastern++;
     else western++;
   });
@@ -147,26 +147,26 @@ export function determineHemisphereEmphasis(planets, ascLon, mcLon) {
 }
 
 /**
- * Gezegenin hangi evde olduğunu bul.
- * Ev sınırları (cusps) arasında gezegenin boylamını ara.
+ * Find which house a planet is in.
+ * Search for the planet's longitude between house cusps.
  */
 export function findPlanetInHouse(planetLon, cusps) {
-  // cusps[1] - cusps[12] (index 0 boş)
+  // cusps[1] - cusps[12] (index 0 is empty)
   for (let i = 1; i <= 12; i++) {
     const nextHouse = i === 12 ? 1 : i + 1;
     const start = cusps[i];
     const end = cusps[nextHouse];
 
-    // 0°/360° geçişini handle et
+    // Handle the 0°/360° boundary crossing
     if (start <= end) {
       if (planetLon >= start && planetLon < end) return i;
     } else {
-      // Burç sınırı geçişi (örn: 350° - 10°)
+      // Sign boundary crossing (e.g. 350° - 10°)
       if (planetLon >= start || planetLon < end) return i;
     }
   }
 
-  return 1; // Fallback (olmamalı ama güvenlik için)
+  return 1; // Fallback (should not happen, but just in case)
 }
 
 export function roundTo(num, decimals) {

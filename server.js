@@ -16,12 +16,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// ========== SAĞLIK KONTROLÜ ==========
+// ========== HEALTH CHECK ==========
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', engine: 'celestia', version });
 });
 
-// ========== DOĞUM HARİTASI HESAPLA ==========
+// ========== NATAL CHART CALCULATION ==========
 app.post('/api/natal-chart', (req, res) => {
   try {
     const {
@@ -30,7 +30,7 @@ app.post('/api/natal-chart', (req, res) => {
       houseSystem
     } = req.body;
 
-    // Zorunlu alan kontrolü
+    // Required field validation
     const required = { year, month, day, hour, minute, latitude, longitude, timezone };
     const missing = Object.entries(required)
       .filter(([key, val]) => val === undefined || val === null)
@@ -38,7 +38,7 @@ app.post('/api/natal-chart', (req, res) => {
 
     if (missing.length > 0) {
       return res.status(400).json({
-        error: 'Eksik alanlar',
+        error: 'Missing fields',
         missing,
         example: {
           year: 1990, month: 7, day: 15, hour: 14, minute: 30,
@@ -64,22 +64,22 @@ app.post('/api/natal-chart', (req, res) => {
     res.json(chart);
 
   } catch (error) {
-    console.error('Hesaplama hatasi:', error.message);
+    console.error('Calculation error:', error.message);
     res.status(400).json({
       error: error.message,
-      hint: 'Timezone icin IANA formati kullanin (orn: "Europe/Istanbul", "America/New_York")'
+      hint: 'Use IANA format for timezone (e.g.: "Europe/Istanbul", "America/New_York")'
     });
   }
 });
 
-// ========== SYNASTRY HESAPLA ==========
+// ========== SYNASTRY CALCULATION ==========
 app.post('/api/synastry', (req, res) => {
   try {
     const { person1, person2 } = req.body;
 
     if (!person1 || !person2) {
       return res.status(400).json({
-        error: 'Eksik veri: person1 ve person2 nesneleri gerekli',
+        error: 'Missing data: person1 and person2 objects are required',
         example: {
           person1: {
             year: 1998, month: 11, day: 25, hour: 10, minute: 17,
@@ -95,14 +95,14 @@ app.post('/api/synastry', (req, res) => {
       });
     }
 
-    // Her iki kişi için zorunlu alan kontrolü
+    // Required field validation for both persons
     const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude', 'timezone'];
 
     for (const [label, person] of [['person1', person1], ['person2', person2]]) {
       const missing = requiredFields.filter(f => person[f] === undefined || person[f] === null);
       if (missing.length > 0) {
         return res.status(400).json({
-          error: `${label} icin eksik alanlar`,
+          error: `Missing fields for ${label}`,
           missing,
         });
       }
@@ -136,15 +136,15 @@ app.post('/api/synastry', (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Synastry hesaplama hatasi:', error.message);
+    console.error('Synastry calculation error:', error.message);
     res.status(400).json({
       error: error.message,
-      hint: 'Her iki kisi icin dogum bilgilerini kontrol edin'
+      hint: 'Check birth data for both persons'
     });
   }
 });
 
-// ========== TRANSİT HESAPLA ==========
+// ========== TRANSIT CALCULATION ==========
 app.post('/api/transits', (req, res) => {
   try {
     const {
@@ -154,7 +154,7 @@ app.post('/api/transits', (req, res) => {
       days, startDate, topN
     } = req.body;
 
-    // Zorunlu alan kontrolü
+    // Required field validation
     const required = { year, month, day, hour, minute, latitude, longitude, timezone };
     const missing = Object.entries(required)
       .filter(([key, val]) => val === undefined || val === null)
@@ -162,7 +162,7 @@ app.post('/api/transits', (req, res) => {
 
     if (missing.length > 0) {
       return res.status(400).json({
-        error: 'Eksik alanlar',
+        error: 'Missing fields',
         missing,
         example: {
           year: 1998, month: 11, day: 25, hour: 10, minute: 17,
@@ -174,11 +174,11 @@ app.post('/api/transits', (req, res) => {
       });
     }
 
-    // days validasyonu
+    // days validation
     const periodDays = days ? parseInt(days) : 30;
     if (periodDays < 1 || periodDays > 365) {
       return res.status(400).json({
-        error: 'days 1-365 arasinda olmali',
+        error: 'days must be between 1 and 365',
       });
     }
 
@@ -204,24 +204,24 @@ app.post('/api/transits', (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Transit hesaplama hatasi:', error.message);
+    console.error('Transit calculation error:', error.message);
     res.status(400).json({
       error: error.message,
-      hint: 'Natal dogum bilgilerini kontrol edin'
+      hint: 'Check natal birth data'
     });
   }
 });
 
-// ========== DESTEKLENEN EV SİSTEMLERİ ==========
+// ========== SUPPORTED HOUSE SYSTEMS ==========
 app.get('/api/house-systems', (req, res) => {
   res.json(HOUSE_SYSTEMS);
 });
 
-// ========== SUNUCUYU BAŞLAT ==========
+// ========== START SERVER ==========
 app.listen(PORT, () => {
-  console.log(`Celestia Engine calisiyor: http://localhost:${PORT}`);
+  console.log(`Celestia Engine running: http://localhost:${PORT}`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/natal-chart`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/synastry`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/transits`);
-  console.log(`Saglik kontrolu: GET http://localhost:${PORT}/health`);
+  console.log(`Health check: GET http://localhost:${PORT}/health`);
 });

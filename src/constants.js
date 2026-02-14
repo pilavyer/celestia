@@ -1,18 +1,18 @@
 // src/constants.js
 
-// Burç isimleri — index 0'dan başlar (0° = Koç başlangıcı)
+// Zodiac sign names — index starts at 0 (0° = beginning of Aries)
 export const SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
-// Türkçe burç isimleri (opsiyonel, locale desteği için)
+// Turkish zodiac sign names (optional, for locale support)
 export const SIGNS_TR = [
   'Koç', 'Boğa', 'İkizler', 'Yengeç', 'Aslan', 'Başak',
   'Terazi', 'Akrep', 'Yay', 'Oğlak', 'Kova', 'Balık'
 ];
 
-// Swiss Ephemeris gök cismi ID'leri
+// Swiss Ephemeris celestial body IDs
 export const CELESTIAL_BODIES = [
   { id: 0,  name: 'Sun',       trName: 'Güneş' },
   { id: 1,  name: 'Moon',      trName: 'Ay' },
@@ -29,8 +29,8 @@ export const CELESTIAL_BODIES = [
   { id: 12, name: 'Lilith',    trName: 'Lilith' },
 ];
 
-// Aspekt tanımları
-// orb = tolerans derecesi (Güneş ve Ay için %25 genişletilir)
+// Aspect definitions
+// orb = tolerance in degrees (widened by 25% for Sun and Moon)
 export const ASPECTS = [
   { name: 'Conjunction',  angle: 0,   orb: 8,   symbol: '☌', trName: 'Kavuşum' },
   { name: 'Opposition',   angle: 180, orb: 8,   symbol: '☍', trName: 'Karşıt' },
@@ -41,20 +41,20 @@ export const ASPECTS = [
   { name: 'Semi-sextile', angle: 30,  orb: 1.5, symbol: '⚺', trName: 'Yarı Altıgen' },
 ];
 
-// Desteklenen ev sistemleri
-// Swiss Ephemeris tek karakter kodları kullanır
+// Supported house systems
+// Swiss Ephemeris uses single character codes
 export const HOUSE_SYSTEMS = {
-  'P': { name: 'Placidus',       description: 'En yaygın Batı sistemi (varsayılan)' },
-  'K': { name: 'Koch',           description: 'Placidus\'a benzer, bazı Avrupa astrologları tercih eder' },
-  'W': { name: 'Whole Sign',     description: 'En eski sistem, Hellenistik astroloji. Tüm enlemlerde çalışır' },
-  'E': { name: 'Equal',          description: 'Her ev 30°, ASC\'den başlar' },
-  'B': { name: 'Alcabitius',     description: 'Orta Çağ Arap astrolojisi' },
-  'R': { name: 'Regiomontanus',  description: 'Horary astrolojide tercih edilir' },
-  'O': { name: 'Porphyry',       description: 'En basit quadrant sistemi' },
-  'C': { name: 'Campanus',       description: 'Mekan bazlı bölünme' },
+  'P': { name: 'Placidus',       description: 'Most common Western system (default)' },
+  'K': { name: 'Koch',           description: 'Similar to Placidus, preferred by some European astrologers' },
+  'W': { name: 'Whole Sign',     description: 'Oldest system, Hellenistic astrology. Works at all latitudes' },
+  'E': { name: 'Equal',          description: 'Each house is 30°, starting from ASC' },
+  'B': { name: 'Alcabitius',     description: 'Medieval Arabian astrology' },
+  'R': { name: 'Regiomontanus',  description: 'Preferred in horary astrology' },
+  'O': { name: 'Porphyry',       description: 'Simplest quadrant system' },
+  'C': { name: 'Campanus',       description: 'Space-based division' },
 };
 
-// Element ve modalite sınıflandırması
+// Element and modality classification
 export const ELEMENTS = {
   Fire:  ['Aries', 'Leo', 'Sagittarius'],
   Earth: ['Taurus', 'Virgo', 'Capricorn'],
@@ -68,7 +68,7 @@ export const MODALITIES = {
   Mutable:  ['Gemini', 'Virgo', 'Sagittarius', 'Pisces'],
 };
 
-// Modern burç yöneticileri (sign → ruling planet)
+// Modern sign rulers (sign → ruling planet)
 export const SIGN_RULERS = {
   Aries: 'Mars',
   Taurus: 'Venus',

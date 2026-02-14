@@ -14,17 +14,17 @@ swe.set_ephe_path(ephePath);
 
 const calcFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_SPEED;
 
-// Transit orb ölçeği — natal'in yarısı
+// Transit orb scale — half of natal orbs
 const TRANSIT_ORB_SCALE = 0.5;
 
-// Türkçe gezegen isimleri haritası
+// Turkish planet name lookup map
 const PLANET_TR = {};
 CELESTIAL_BODIES.forEach(b => { PLANET_TR[b.name] = b.trName; });
 PLANET_TR['South Node'] = 'Güney Ay Düğümü';
 PLANET_TR['Ascendant'] = 'Yükselen';
 PLANET_TR['Midheaven'] = 'Gökyüzü Ortası';
 
-// Ay faz Türkçe isimleri
+// Turkish moon phase name lookup map
 const MOON_PHASE_TR = {
   'New Moon': 'Yeni Ay',
   'Waxing Crescent': 'Hilal (Büyüyen)',
@@ -36,10 +36,10 @@ const MOON_PHASE_TR = {
   'Waning Crescent': 'Hilal (Küçülen)',
 };
 
-// ========== HELPER FONKSİYONLAR ==========
+// ========== HELPER FUNCTIONS ==========
 
 /**
- * Tek bir Julian Day'de tüm gezegen pozisyonlarını hesapla (house hesabı yok).
+ * Calculate all planet positions at a single Julian Day (no house calculation).
  */
 export function getPlanetPositionsAtJD(jd_et) {
   const planets = CELESTIAL_BODIES.map(body => {
@@ -73,7 +73,7 @@ export function getPlanetPositionsAtJD(jd_et) {
 }
 
 /**
- * Şu anki UTC zamanı → Julian Day (ET).
+ * Current UTC time → Julian Day (ET).
  */
 export function nowToJD() {
   const now = new Date();
@@ -86,7 +86,7 @@ export function nowToJD() {
 }
 
 /**
- * Takvim tarihi → Julian Day (ET).
+ * Calendar date → Julian Day (ET).
  */
 export function dateToJD(year, month, day, hour = 12) {
   const minutes = Math.round((hour - Math.floor(hour)) * 60);
@@ -113,7 +113,7 @@ export function jdToISO(jd) {
 }
 
 /**
- * Julian Day → "d-M-yyyy" format string (AstroAK uyumlu).
+ * Julian Day → "d-M-yyyy" format string (AstroAK compatible).
  */
 export function jdToDateStr(jd) {
   const rev = swe.revjul(jd, swe.constants.SE_GREG_CAL);
@@ -121,11 +121,11 @@ export function jdToDateStr(jd) {
 }
 
 /**
- * Golden section search ile transit'in exact zamanını bul.
- * approxJD ±1 gün penceresi içinde, ~8.6 saniye hassasiyet.
+ * Find the exact time of a transit using golden section search.
+ * Searches within a ±1 day window around approxJD, with ~8.6 second precision.
  */
 export function refineExactTime(transitPlanetId, natalLongitude, aspectAngle, approxJD) {
-  const tolerance = 0.0001; // ~8.6 saniye
+  const tolerance = 0.0001; // ~8.6 seconds
   let a = approxJD - 1.0;
   let b = approxJD + 1.0;
 
@@ -166,7 +166,7 @@ export function refineExactTime(transitPlanetId, natalLongitude, aspectAngle, ap
 }
 
 /**
- * Transit gezegenler arasında retrograd olanları listele.
+ * List retrograde planets among transit planets.
  */
 export function calculateRetrogrades(transitPlanets) {
   return transitPlanets
@@ -179,7 +179,7 @@ export function calculateRetrogrades(transitPlanets) {
 }
 
 /**
- * Ay metrikleri hesapla: burç, faz, illumination, perigee/apogee.
+ * Calculate lunar metrics: sign, phase, illumination, perigee/apogee.
  */
 export function calculateLunarMetrics(jd_et) {
   const moonResult = swe.calc_ut(jd_et, 1, calcFlags); // Moon
@@ -227,22 +227,22 @@ export function calculateLunarMetrics(jd_et) {
   };
 }
 
-// ========== ANA FONKSİYON ==========
+// ========== MAIN FUNCTION ==========
 
 /**
- * Transit hesapla.
+ * Calculate transits.
  *
- * @param {object} natalParams - Natal doğum bilgileri
+ * @param {object} natalParams - Natal birth data
  * @param {object} options - { days, startDate, topN }
- * @returns {object} Transit verileri
+ * @returns {object} Transit data
  */
 export function calculateTransits(natalParams, options = {}) {
   const { days = 30, startDate, topN = 10 } = options;
 
-  // 1. Natal harita hesapla
+  // 1. Calculate natal chart
   const natal = calculateNatalChart(natalParams);
 
-  // 2. Natal bodies dizisi (gezegenler + ASC + MC)
+  // 2. Natal bodies array (planets + ASC + MC)
   const natalBodies = [
     ...natal.planets.map(p => ({
       id: p.id,
@@ -261,7 +261,7 @@ export function calculateTransits(natalParams, options = {}) {
     },
   ];
 
-  // 3. Start/End JD hesapla
+  // 3. Calculate Start/End JD
   let startJD;
   if (startDate) {
     const parts = startDate.split('-');
@@ -271,40 +271,40 @@ export function calculateTransits(natalParams, options = {}) {
   }
   const endJD = startJD + days;
 
-  // Today ve week boundaries
+  // Today and week boundaries
   const todayJD = nowToJD();
   const todayEndJD = todayJD + 1;
   const weekEndJD = todayJD + 7;
 
-  // 4. Günlük tarama — 0.5 günlük adımlar (12 saatlik aralıklar)
+  // 4. Daily scan — 0.5-day steps (12-hour intervals)
   const stepDays = 0.5;
   const activeAspects = new Map(); // key: "transitName-natalName-aspectName"
   const allEvents = [];
 
-  // Transit gezegenler (ASC/MC transit olarak kullanılmaz)
+  // Transit planets (ASC/MC are not used as transit bodies)
   const transitBodyDefs = CELESTIAL_BODIES.filter(b =>
-    !['True Node', 'Lilith'].includes(b.name) // Node ve Lilith dahil etmiyoruz transit gezegen olarak - sadece natal hedef
+    !['True Node', 'Lilith'].includes(b.name) // Node and Lilith excluded as transit planets — natal targets only
   );
-  // Aslında tüm CELESTIAL_BODIES transit gezegen olarak kullanılabilir
-  // Plan'a göre tüm gezegenler transit olarak taranacak
+  // In practice all CELESTIAL_BODIES can be used as transit planets
+  // Per the plan, all planets are scanned as transiting bodies
 
   for (let jd = startJD; jd <= endJD; jd += stepDays) {
     const transitPlanets = getPlanetPositionsAtJD(jd);
 
     for (const tp of transitPlanets) {
       for (const nb of natalBodies) {
-        // Aynı gezegen Conjunction (0°) yapamaz ama diğer aspektler yapabilir
-        // (örn: transit Neptune sextile natal Neptune)
+        // Same planet cannot form Conjunction (0°) but can form other aspects
+        // (e.g., transit Neptune sextile natal Neptune)
         const isSamePlanet = tp.name === nb.name;
 
         let diff = Math.abs(tp.longitude - nb.longitude);
         if (diff > 180) diff = 360 - diff;
 
         for (const aspect of ASPECTS) {
-          // Aynı gezegen kendisiyle Conjunction yapamaz (her zaman 0° civarı olur)
+          // Same planet cannot conjunct itself (always near 0°)
           if (isSamePlanet && aspect.angle === 0) continue;
 
-          // Transit orb: natal'in yarısı
+          // Transit orb: half of natal orb
           let effectiveOrb = aspect.orb * TRANSIT_ORB_SCALE;
 
           // Luminary modifier
@@ -323,9 +323,9 @@ export function calculateTransits(natalParams, options = {}) {
           const key = `${tp.name}-${nb.name}-${aspect.name}`;
 
           if (deviation <= effectiveOrb) {
-            // Orb içinde
+            // Within orb
             if (!activeAspects.has(key)) {
-              // Yeni event
+              // New event
               activeAspects.set(key, {
                 transitPlanet: tp.name,
                 transitPlanetTr: PLANET_TR[tp.name] || tp.name,
@@ -343,7 +343,7 @@ export function calculateTransits(natalParams, options = {}) {
                 minDeviationJD: jd,
               });
             } else {
-              // Mevcut event'i güncelle — daha dar orb varsa
+              // Update existing event — if tighter orb found
               const existing = activeAspects.get(key);
               if (deviation < existing.minDeviation) {
                 existing.minDeviation = deviation;
@@ -351,14 +351,14 @@ export function calculateTransits(natalParams, options = {}) {
               }
             }
 
-            // Bu çift için sadece bir aspekt
+            // Only one aspect per pair
             break;
           } else if (activeAspects.has(key)) {
-            // Orb'dan çıktı — event'i finalize et
+            // Exited orb — finalize the event
             const event = activeAspects.get(key);
             const exactJD = refineExactTime(event.transitPlanetId, event.natalLongitude, event.aspectAngle, event.minDeviationJD);
 
-            // exactJD, enterJD'den önce olabilir (tarama başında zaten aktif olan transit)
+            // exactJD may precede enterJD (transit already active at scan start)
             const eventStartJD = Math.min(event.enterJD, exactJD);
 
             allEvents.push({
@@ -388,7 +388,7 @@ export function calculateTransits(natalParams, options = {}) {
     }
   }
 
-  // Hala aktif olanları finalize et (endTime = null, scan sonu)
+  // Finalize still-active aspects (endTime = null, end of scan)
   for (const [key, event] of activeAspects.entries()) {
     const exactJD = refineExactTime(event.transitPlanetId, event.natalLongitude, event.aspectAngle, event.minDeviationJD);
     const eventStartJD = Math.min(event.enterJD, exactJD);
@@ -413,7 +413,7 @@ export function calculateTransits(natalParams, options = {}) {
     });
   }
 
-  // 5. allTransits: her gün en dar orb'lu snapshot (deduplicated)
+  // 5. allTransits: tightest-orb snapshot per day (deduplicated)
   const allTransitsMap = new Map();
   for (const ev of allEvents) {
     const dateStr = jdToDateStr(ev.exactJD);
@@ -436,7 +436,7 @@ export function calculateTransits(natalParams, options = {}) {
   }
   const allTransits = [...allTransitsMap.values()].sort((a, b) => a.orb - b.orb);
 
-  // 6. todayTransits ve weekTransits
+  // 6. todayTransits and weekTransits
   const todayTransits = allEvents
     .filter(ev => ev.exactJD >= todayJD && ev.exactJD < todayEndJD)
     .map(ev => formatEventSnapshot(ev))
@@ -447,7 +447,7 @@ export function calculateTransits(natalParams, options = {}) {
     .map(ev => formatEventSnapshot(ev))
     .sort((a, b) => a.orb - b.orb);
 
-  // 7. weeklyWithTiming: haftalık transitler + timing
+  // 7. weeklyWithTiming: weekly transits + timing
   const weeklyWithTiming = allEvents
     .filter(ev => ev.exactJD >= todayJD && ev.exactJD < weekEndJD)
     .map(ev => ({
@@ -467,7 +467,7 @@ export function calculateTransits(natalParams, options = {}) {
     }))
     .sort((a, b) => a.orb - b.orb);
 
-  // 8. importantTransits: top N event, exact_time'a göre sıralı
+  // 8. importantTransits: top N events, sorted by exact_time
   const importantTransits = [...allEvents]
     .sort((a, b) => a.orb - b.orb)
     .slice(0, topN)
@@ -488,7 +488,7 @@ export function calculateTransits(natalParams, options = {}) {
     }))
     .sort((a, b) => (a.exactTime || '').localeCompare(b.exactTime || ''));
 
-  // 9. Lunar metrics ve retrogrades
+  // 9. Lunar metrics and retrogrades
   const currentTransitPlanets = getPlanetPositionsAtJD(todayJD);
   const lunar = calculateLunarMetrics(todayJD);
   const retrogrades = calculateRetrogrades(currentTransitPlanets);
@@ -499,7 +499,7 @@ export function calculateTransits(natalParams, options = {}) {
   // Ascendant sign
   const ascSign = natal.houses.ascendant.sign;
 
-  // Tarih stringleri
+  // Date strings
   const monthStartDate = jdToDateStr(startJD);
   const monthEndDate = jdToDateStr(endJD);
 
@@ -543,7 +543,7 @@ export function calculateTransits(natalParams, options = {}) {
   };
 }
 
-// ========== YARDIMCI ==========
+// ========== UTILITIES ==========
 
 function calculateStrength(deviation, maxOrb) {
   if (maxOrb === 0) return 100;
