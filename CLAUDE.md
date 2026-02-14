@@ -18,7 +18,7 @@ Celestia is a high-precision astrology calculation engine exposing a REST API. I
 Express app with 5 endpoints: `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `GET /api/house-systems`, `GET /health`. Input validation and error handling per endpoint.
 
 ### `src/calculator.js`
-Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc_ut()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums).
+Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc_ut()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, chart ruler, house rulers).
 
 ### `src/synastry.js`
 Computes two natal charts, then: cross-aspects (planet×planet including ASC/MC), bidirectional house overlay (person1's planets in person2's houses and vice versa), and composite chart using midpoint method. Exports `midpoint()` and `calculateSynastry()`.
@@ -38,9 +38,6 @@ Converts local birth time to UTC using Luxon. Handles DST spring-forward gaps (t
 ### `src/utils.js`
 Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfFortune()`, element/modality distribution, hemisphere emphasis, `findPlanetInHouse()`.
 
-### `src/medical.js`
-Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, medical Arabic parts, Dorothean triplicity, Egyptian terms, Chaldean faces, Lilly dignity scores, 22 medical fixed stars catalog, OOB medical interpretations, progressed Moon health themes (12 signs), 23 Ebertin medical midpoint pairs, traditional rulers, and exaltation rulers. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections), `calculatePlanetaryStrength()` (Lilly-system essential+accidental dignity scoring with mutual reception bonus), `findMutualReceptions()` (domicile/exaltation/mixed), `buildDispositorChain()` (final dispositor + chain tracing), `calculateAlmutenFiguris()` (5 hylegical points dignity scoring), `isVoidOfCourse()` (natal VoC Moon detection). Fixed star conjunctions, declination, parallel aspects, secondary progressions, solar return, medical midpoints, and prenatal lunation (bisection-based syzygy search) are computed in `calculator.js`.
-
 ### `src/constants.js`
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, and modalities.
 
@@ -50,6 +47,10 @@ Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles 
 
 ### `CHANGELOG.md`
 Version history in [Keep a Changelog](https://keepachangelog.com) format. Update when releasing new versions.
+
+## Medical Astrology
+
+Medical astrology features are in a separate private package: **celestia-medical**. It depends on this package (`celestia`) and adds 18 health-oriented chart analysis features via `calculateMedicalChart()`.
 
 ## Critical Rules
 
@@ -80,25 +81,16 @@ Version history in [Keep a Changelog](https://keepachangelog.com) format. Update
 ```bash
 npm start        # Start production server (port 3000)
 npm run dev      # Start with nodemon (auto-reload)
-npm test         # Run 42-test suite (natal, synastry, transit, medical, strength, stars, declination, progressions, solar return, midpoints, mutual reception, dispositor, VoC, prenatal lunation, almuten)
+npm test         # Run 13-test suite (natal, synastry, transit, lunar)
 npm run compare  # Run compare.js (dev utility, not committed)
 ```
 
 ## Tests
 
-`test.js` contains 42 tests:
+`test.js` contains 13 tests:
 - Tests 1-5: Natal chart (Istanbul, DST, New York, high latitude, full output)
 - Tests 6-8: Synastry (basic, house overlay, composite midpoint)
 - Tests 9-13: Transit (response shape, orb validation, event timing, lunar metrics, aspect angle validation)
-- Tests 14-20: Medical astrology (body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia)
-- Tests 21-23: Planetary strength (Lilly score + breakdown consistency + known dignity validation)
-- Tests 24-28: Fixed stars (conjunctions), declination (values, planet fields, OOB consistency), parallel aspects
-- Tests 29-30: Secondary progressions (age/solarArc/progressedMoon + progressed aspects to natal)
-- Tests 31-32: Solar return (sun accuracy < 0.01° + health analysis structure)
-- Tests 33-35: Medical midpoints (catalog/Mars-Saturn + 90° dial natal contacts + wrap-around validation)
-- Tests 36-37: Mutual reception (detection + strength bonus) and dispositor chain (final dispositor + chain tracing)
-- Tests 38-39: Void of Course Moon (isVoid + degreesRemaining) and prenatal lunation (syzygy type + JD before birth)
-- Tests 40-42: Almuten Figuris (scores + hylegical points consistency) and mutual reception bonus consistency
 
 Run with `node test.js` — all tests should print "BASARILI" (success).
 
