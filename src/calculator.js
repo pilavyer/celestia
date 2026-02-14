@@ -19,7 +19,7 @@ import {
 } from './utils.js';
 import {
   getBodyAreas, getCombustionStatus, getCriticalDegree,
-  getSpeedClassification, calculateProfection,
+  getSpeedClassification, calculatePlanetaryStrength, calculateProfection,
   calculateMedicalArabicParts, calculateAntiscia, HOUSE_HEALTH_MAP,
 } from './medical.js';
 
@@ -238,16 +238,23 @@ export function calculateNatalChart({
   const sunPlanet = planets.find(p => p.name === 'Sun');
   const sunLon = sunPlanet ? sunPlanet.longitude : null;
 
+  // Gündüz/gece haritası tespiti (Güneş ufkun üstünde mi?) — planetaryStrength için gerekli
+  const isDayChart = sunPlanet ? isAboveHorizon(sunPlanet.longitude, ascendant) : true;
+
   const planetsWithHouses = planets.map(planet => {
     const house = findPlanetInHouse(planet.longitude, cusps);
-    return {
+    const combustion = sunLon !== null ? getCombustionStatus(planet.name, planet.longitude, sunLon) : null;
+    const speedAnalysis = getSpeedClassification(planet.name, planet.speed);
+    const enriched = {
       ...planet,
       house,
       bodyAreas: getBodyAreas(planet.name, planet.sign),
-      combustion: sunLon !== null ? getCombustionStatus(planet.name, planet.longitude, sunLon) : null,
+      combustion,
       criticalDegree: getCriticalDegree(planet.sign, planet.degree),
-      speedAnalysis: getSpeedClassification(planet.name, planet.speed),
+      speedAnalysis,
     };
+    enriched.planetaryStrength = calculatePlanetaryStrength(enriched, isDayChart);
+    return enriched;
   });
 
   // ========== ASPEKTLER ==========
@@ -265,9 +272,6 @@ export function calculateNatalChart({
 
   const sun = planetsWithHouses.find(p => p.name === 'Sun');
   const moon = planetsWithHouses.find(p => p.name === 'Moon');
-
-  // Gündüz/gece haritası tespiti (Güneş ufkun üstünde mi?)
-  const isDayChart = sun ? isAboveHorizon(sun.longitude, ascendant) : true;
 
   // Part of Fortune
   const partOfFortune = calculatePartOfFortune(ascendant, sun?.longitude, moon?.longitude, isDayChart);

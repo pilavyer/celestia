@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-02-14
 
 ### Added
-- **Medical astrology module** (`src/medical.js`): 7 new features for health-oriented chart analysis
+- **Medical astrology module** (`src/medical.js`): 8 features for health-oriented chart analysis
 - **Body area mapping**: each planet enriched with `bodyAreas` combining planet and sign body rulerships
 - **Combustion status**: cazimi (≤0.283°), combust (≤8.5°), under the beams (≤17°), or free for each planet relative to the Sun
 - **Critical degrees**: cardinal (0°, 13°, 26°), fixed (9°, 21°), mutable (4°, 17°) and anaretic (29°) detection
@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Annual profection**: active house, year lord, and year lord's natal position based on current age
 - **Medical Arabic parts**: 6 health-related lots (Illness, Surgery, Healing, Vitality, Crisis, Death) with house placement
 - **Antiscia & contra-antiscia**: mirror points on Cancer-Capricorn and Aries-Libra axes with hidden connection detection
+- **Planetary strength score** (Lilly system): essential dignity (domicile, exaltation, Dorothean triplicity, Egyptian terms, Chaldean faces, peregrine) + accidental dignity (angular/succedent/cadent) + modifiers (retrograde, combustion, speed) with full breakdown and strength label
 - `healthDomain` field added to each house cusp (e.g., house 6 → "acute illness, daily health and hygiene")
+- `planetaryStrength` field added to each planet with `totalScore`, `breakdown`, `strength`, `strengthTr`
 - `analysis.medicalAstrology` section in natal chart output containing profection, Arabic parts, and antiscia
-- 7 new tests (Tests 14-20): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia
+- 10 new tests (Tests 14-23): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia, planetary strength score, breakdown consistency, known dignity validation
 
 ## [2.0.0] - 2026-02-12
 

@@ -979,6 +979,208 @@ if (medChart) {
   }
 }
 
+// ========== GEZEGEN GÜÇ SKORU TESTLERİ (21-23) ==========
+
+// ========== TEST 21: Planetary Strength — temel skor ve breakdown ==========
+console.log('\nTEST 21: Planetary Strength — totalScore, breakdown, strength label');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test21Valid = true;
+    const validStrengths = ['very_strong', 'strong', 'moderate', 'weak', 'very_weak'];
+    const mainPlanetNames = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+
+    for (const name of mainPlanetNames) {
+      const planet = medChart.planets.find(p => p.name === name);
+      const ps = planet.planetaryStrength;
+
+      if (!ps) {
+        console.error(`HATA: ${name} icin planetaryStrength null!`);
+        test21Valid = false;
+        break;
+      }
+      if (typeof ps.totalScore !== 'number') {
+        console.error(`HATA: ${name} totalScore number degil!`);
+        test21Valid = false;
+        break;
+      }
+      if (!validStrengths.includes(ps.strength)) {
+        console.error(`HATA: ${name} gecersiz strength: ${ps.strength}`);
+        test21Valid = false;
+        break;
+      }
+      if (typeof ps.breakdown !== 'object') {
+        console.error(`HATA: ${name} breakdown obje degil!`);
+        test21Valid = false;
+        break;
+      }
+      if (!ps.strengthTr) {
+        console.error(`HATA: ${name} strengthTr eksik!`);
+        test21Valid = false;
+        break;
+      }
+    }
+
+    // True Node, South Node, Lilith icin null olmali
+    for (const name of ['True Node', 'South Node', 'Lilith']) {
+      const planet = medChart.planets.find(p => p.name === name);
+      if (planet && planet.planetaryStrength !== null) {
+        console.error(`HATA: ${name} icin planetaryStrength null olmali!`);
+        test21Valid = false;
+        break;
+      }
+    }
+
+    if (test21Valid) {
+      console.log('BASARILI: 10 ana gezegende valid planetaryStrength, Node/Lilith null');
+      // Tablo ciktisi
+      console.log('\n  Gezegen Guc Tablosu:');
+      for (const name of mainPlanetNames) {
+        const planet = medChart.planets.find(p => p.name === name);
+        const ps = planet.planetaryStrength;
+        const scoreStr = ps.totalScore >= 0 ? `+${ps.totalScore}` : `${ps.totalScore}`;
+        console.log(`  ${name.padEnd(10)} ${scoreStr.padStart(4)} (${ps.strengthTr})`);
+      }
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 22: Breakdown bileşenleri — skor toplamı tutarlılığı ==========
+console.log('\nTEST 22: Breakdown bileşenleri — totalScore = sum(breakdown)');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test22Valid = true;
+    const mainPlanetNames = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+
+    for (const name of mainPlanetNames) {
+      const planet = medChart.planets.find(p => p.name === name);
+      const ps = planet.planetaryStrength;
+      const breakdownSum = Object.values(ps.breakdown).reduce((a, b) => a + b, 0);
+
+      if (Math.abs(breakdownSum - ps.totalScore) > 0.01) {
+        console.error(`HATA: ${name} breakdown toplami (${breakdownSum}) != totalScore (${ps.totalScore})`);
+        test22Valid = false;
+        break;
+      }
+
+      // Her breakdown degeri bilinen kategorilerden biri olmali
+      const validKeys = [
+        'domicile', 'exaltation', 'detriment', 'fall', 'triplicity', 'term', 'face', 'peregrine',
+        'angular', 'succedent', 'cadent',
+        'retrograde', 'cazimi', 'combust', 'under_beams',
+        'stationary', 'slow', 'fast',
+      ];
+      for (const key of Object.keys(ps.breakdown)) {
+        if (!validKeys.includes(key)) {
+          console.error(`HATA: ${name} bilinmeyen breakdown key: ${key}`);
+          test22Valid = false;
+          break;
+        }
+      }
+      if (!test22Valid) break;
+
+      // Her gezegende tam olarak 1 ev kategorisi olmali (angular/succedent/cadent)
+      const houseKeys = ['angular', 'succedent', 'cadent'].filter(k => k in ps.breakdown);
+      if (houseKeys.length !== 1) {
+        console.error(`HATA: ${name} ev kategorisi sayisi ${houseKeys.length} (beklenen 1)`);
+        test22Valid = false;
+        break;
+      }
+    }
+
+    if (test22Valid) {
+      console.log('BASARILI: Tum gezegenlerde breakdown toplami = totalScore ve kategoriler gecerli');
+      // Ornek breakdown
+      const jupiter = medChart.planets.find(p => p.name === 'Jupiter');
+      console.log(`  Jupiter breakdown: ${JSON.stringify(jupiter.planetaryStrength.breakdown)}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 23: Bilinen dignity dogrulamasi ==========
+console.log('\nTEST 23: Bilinen dignity dogrulamasi — Saturn domicile, Jupiter exaltation');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    let test23Valid = true;
+
+    // Saturn Capricorn'da = domicile (+5 olmali breakdown'da)
+    const saturn = medChart.planets.find(p => p.name === 'Saturn');
+    if (saturn.sign === 'Capricorn') {
+      if (saturn.planetaryStrength.breakdown.domicile !== 5) {
+        console.error(`HATA: Saturn Capricorn'da domicile +5 olmali, ${saturn.planetaryStrength.breakdown.domicile} geldi!`);
+        test23Valid = false;
+      }
+    }
+
+    // Jupiter Cancer'da = exaltation (+4 olmali breakdown'da)
+    const jupiter = medChart.planets.find(p => p.name === 'Jupiter');
+    if (jupiter.sign === 'Cancer') {
+      if (jupiter.planetaryStrength.breakdown.exaltation !== 4) {
+        console.error(`HATA: Jupiter Cancer'da exaltation +4 olmali, ${jupiter.planetaryStrength.breakdown.exaltation} geldi!`);
+        test23Valid = false;
+      }
+    }
+
+    // Pluto Scorpio'da = domicile (+5 olmali)
+    const pluto = medChart.planets.find(p => p.name === 'Pluto');
+    if (pluto.sign === 'Scorpio') {
+      if (pluto.planetaryStrength.breakdown.domicile !== 5) {
+        console.error(`HATA: Pluto Scorpio'da domicile +5 olmali, ${pluto.planetaryStrength.breakdown.domicile} geldi!`);
+        test23Valid = false;
+      }
+    }
+
+    // Mars Taurus'ta = detriment (-5 olmali)
+    const mars = medChart.planets.find(p => p.name === 'Mars');
+    if (mars.sign === 'Taurus') {
+      if (mars.planetaryStrength.breakdown.detriment !== -5) {
+        console.error(`HATA: Mars Taurus'ta detriment -5 olmali, ${mars.planetaryStrength.breakdown.detriment} geldi!`);
+        test23Valid = false;
+      }
+    }
+
+    // Neptune Capricorn'da = fall (-4 olmali)
+    const neptune = medChart.planets.find(p => p.name === 'Neptune');
+    if (neptune.sign === 'Capricorn') {
+      if (neptune.planetaryStrength.breakdown.fall !== -4) {
+        console.error(`HATA: Neptune Capricorn'da fall -4 olmali, ${neptune.planetaryStrength.breakdown.fall} geldi!`);
+        test23Valid = false;
+      }
+    }
+
+    // Retrograde gezegenlerde retrograde -5 olmali
+    const retroPlanets = medChart.planets.filter(p =>
+      p.isRetrograde && p.planetaryStrength && !['True Node', 'South Node', 'Lilith'].includes(p.name)
+    );
+    for (const rp of retroPlanets) {
+      if (rp.planetaryStrength.breakdown.retrograde !== -5) {
+        console.error(`HATA: ${rp.name} retrograde -5 olmali!`);
+        test23Valid = false;
+        break;
+      }
+    }
+
+    if (test23Valid) {
+      console.log('BASARILI: Bilinen dignity/debility degerleri dogru');
+      console.log(`  Saturn (${saturn.sign}): domicile=${saturn.planetaryStrength.breakdown.domicile || 'N/A'}, toplam=${saturn.planetaryStrength.totalScore}`);
+      console.log(`  Jupiter (${jupiter.sign}): exaltation=${jupiter.planetaryStrength.breakdown.exaltation || 'N/A'}, toplam=${jupiter.planetaryStrength.totalScore}`);
+      console.log(`  Mars (${mars.sign}): detriment=${mars.planetaryStrength.breakdown.detriment || 'N/A'}, toplam=${mars.planetaryStrength.totalScore}`);
+      console.log(`  Retrograde gezegen sayisi: ${retroPlanets.length} (hepsinde -5)`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
 console.log('\n' + '='.repeat(70));
 console.log('Testler tamamlandi. Sonuclari astro.com ile karsilastirmayi unutma!');
 console.log('='.repeat(70));

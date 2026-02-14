@@ -77,6 +77,83 @@ export const AVERAGE_SPEEDS = {
   Pluto:   { avg: 0.004,  stationaryThreshold: 0.0003 },
 };
 
+/** Lilly skor ağırlıkları */
+export const DIGNITY_SCORES = {
+  // Essential Dignity (pozitif)
+  domicile:    +5,
+  exaltation:  +4,
+  triplicity:  +3,
+  term:        +2,
+  face:        +1,
+  // Essential Debility (negatif)
+  detriment:   -5,
+  fall:        -4,
+  peregrine:   -5,
+  // Accidental Dignity — ev pozisyonu
+  angular:     +5,   // ev 1, 4, 7, 10
+  succedent:   +3,   // ev 2, 5, 8, 11
+  cadent:      +1,   // ev 3, 6, 9, 12
+  // Modifiers
+  retrograde:  -5,
+  combust:     -5,
+  cazimi:      +5,
+  under_beams: -2,
+  direct:       0,
+  // Hız
+  stationary:  -3,
+  slow:        -2,
+  fast:        +2,
+  average:      0,
+};
+
+/** Dorothean triplicity — element → gündüz/gece/katılımcı yöneticileri */
+export const TRIPLICITY = {
+  fire:  { day: 'Sun',    night: 'Jupiter', participating: 'Saturn'  },
+  earth: { day: 'Venus',  night: 'Moon',    participating: 'Mars'    },
+  air:   { day: 'Saturn', night: 'Mercury', participating: 'Jupiter' },
+  water: { day: 'Venus',  night: 'Mars',    participating: 'Moon'    },
+};
+
+/** Burç → element (küçük harf, TRIPLICITY ile eşleşir) */
+export const SIGN_ELEMENT = {
+  Aries: 'fire',     Taurus: 'earth',    Gemini: 'air',
+  Cancer: 'water',   Leo: 'fire',        Virgo: 'earth',
+  Libra: 'air',      Scorpio: 'water',   Sagittarius: 'fire',
+  Capricorn: 'earth', Aquarius: 'air',   Pisces: 'water',
+};
+
+/** Egyptian Terms — [gezegenAdı, başlangıçDerece, bitişDerece] (başlangıç dahil, bitiş hariç) */
+export const TERMS = {
+  Aries:       [['Jupiter',0,6],['Venus',6,12],['Mercury',12,20],['Mars',20,25],['Saturn',25,30]],
+  Taurus:      [['Venus',0,8],['Mercury',8,14],['Jupiter',14,22],['Saturn',22,27],['Mars',27,30]],
+  Gemini:      [['Mercury',0,6],['Jupiter',6,12],['Venus',12,17],['Mars',17,24],['Saturn',24,30]],
+  Cancer:      [['Mars',0,7],['Venus',7,13],['Mercury',13,19],['Jupiter',19,26],['Saturn',26,30]],
+  Leo:         [['Jupiter',0,6],['Venus',6,11],['Saturn',11,18],['Mercury',18,24],['Mars',24,30]],
+  Virgo:       [['Mercury',0,7],['Venus',7,17],['Jupiter',17,21],['Mars',21,28],['Saturn',28,30]],
+  Libra:       [['Saturn',0,6],['Mercury',6,14],['Jupiter',14,21],['Venus',21,28],['Mars',28,30]],
+  Scorpio:     [['Mars',0,7],['Venus',7,11],['Mercury',11,19],['Jupiter',19,24],['Saturn',24,30]],
+  Sagittarius: [['Jupiter',0,12],['Venus',12,17],['Mercury',17,21],['Saturn',21,26],['Mars',26,30]],
+  Capricorn:   [['Mercury',0,7],['Jupiter',7,14],['Venus',14,22],['Saturn',22,26],['Mars',26,30]],
+  Aquarius:    [['Mercury',0,7],['Venus',7,13],['Jupiter',13,20],['Mars',20,25],['Saturn',25,30]],
+  Pisces:      [['Venus',0,12],['Jupiter',12,16],['Mercury',16,19],['Mars',19,28],['Saturn',28,30]],
+};
+
+/** Chaldean Face (Decan) — her burcun 3×10° dilimi */
+export const FACES = {
+  Aries:       ['Mars',    'Sun',     'Venus'  ],
+  Taurus:      ['Mercury', 'Moon',    'Saturn' ],
+  Gemini:      ['Jupiter', 'Mars',    'Sun'    ],
+  Cancer:      ['Venus',   'Mercury', 'Moon'   ],
+  Leo:         ['Saturn',  'Jupiter', 'Mars'   ],
+  Virgo:       ['Sun',     'Venus',   'Mercury'],
+  Libra:       ['Moon',    'Saturn',  'Jupiter'],
+  Scorpio:     ['Mars',    'Sun',     'Venus'  ],
+  Sagittarius: ['Mercury', 'Moon',    'Saturn' ],
+  Capricorn:   ['Jupiter', 'Mars',    'Sun'    ],
+  Aquarius:    ['Venus',   'Mercury', 'Moon'   ],
+  Pisces:      ['Saturn',  'Jupiter', 'Mars'   ],
+};
+
 /** 6 tıbbi Arap noktası tanımı — formül: ASC + a - b */
 export const MEDICAL_ARABIC_PARTS = [
   { name: 'Part of Illness',   trName: 'Hastalık Noktası',    a: 'Mars',    b: 'Saturn'  },
@@ -393,4 +470,111 @@ export function calculateAntiscia(planetsWithHouses, orb = 2.0) {
   }
 
   return { points, hiddenConnections };
+}
+
+/**
+ * 8. Gezegen güç skoru hesabı (Lilly sistemi)
+ * Essential dignity + accidental dignity + modifiers
+ * @param {object} planet - Ev, combustion, speedAnalysis bilgileri eklenmiş gezegen
+ * @param {boolean} isDayChart - Gündüz haritası mı?
+ * @returns {{ totalScore: number, breakdown: object, strength: string, strengthTr: string } | null}
+ */
+export function calculatePlanetaryStrength(planet, isDayChart) {
+  // True Node, South Node, Lilith için skor hesaplanmaz
+  if (['True Node', 'South Node', 'Lilith'].includes(planet.name)) {
+    return null;
+  }
+
+  let score = 0;
+  const breakdown = {};
+
+  // === ESSENTIAL DIGNITY ===
+
+  // Domicile / Exaltation / Detriment / Fall
+  if (planet.dignity === 'domicile')   { score += DIGNITY_SCORES.domicile;   breakdown.domicile   = DIGNITY_SCORES.domicile; }
+  if (planet.dignity === 'exaltation') { score += DIGNITY_SCORES.exaltation; breakdown.exaltation = DIGNITY_SCORES.exaltation; }
+  if (planet.dignity === 'detriment')  { score += DIGNITY_SCORES.detriment;  breakdown.detriment  = DIGNITY_SCORES.detriment; }
+  if (planet.dignity === 'fall')       { score += DIGNITY_SCORES.fall;       breakdown.fall       = DIGNITY_SCORES.fall; }
+
+  // Triplicity (Dorothean)
+  const element = SIGN_ELEMENT[planet.sign];
+  if (element) {
+    const trip = TRIPLICITY[element];
+    if (isDayChart && planet.name === trip.day) {
+      score += DIGNITY_SCORES.triplicity; breakdown.triplicity = DIGNITY_SCORES.triplicity;
+    } else if (!isDayChart && planet.name === trip.night) {
+      score += DIGNITY_SCORES.triplicity; breakdown.triplicity = DIGNITY_SCORES.triplicity;
+    } else if (planet.name === trip.participating) {
+      score += 1; breakdown.triplicity = +1;
+    }
+  }
+
+  // Term (Egyptian)
+  const degree = Math.floor(planet.longitude % 30);
+  const termEntries = TERMS[planet.sign];
+  if (termEntries) {
+    const termEntry = termEntries.find(t => degree >= t[1] && degree < t[2]);
+    if (termEntry && planet.name === termEntry[0]) {
+      score += DIGNITY_SCORES.term; breakdown.term = DIGNITY_SCORES.term;
+    }
+  }
+
+  // Face (Chaldean Decan)
+  const faceData = FACES[planet.sign];
+  if (faceData) {
+    const faceIndex = Math.floor(degree / 10);
+    if (planet.name === faceData[faceIndex]) {
+      score += DIGNITY_SCORES.face; breakdown.face = DIGNITY_SCORES.face;
+    }
+  }
+
+  // Peregrine — hiçbir essential dignity yoksa (detriment/fall hariç)
+  const hasAnyDignity = breakdown.domicile || breakdown.exaltation ||
+                         breakdown.triplicity || breakdown.term || breakdown.face;
+  if (!hasAnyDignity && !breakdown.detriment && !breakdown.fall) {
+    score += DIGNITY_SCORES.peregrine; breakdown.peregrine = DIGNITY_SCORES.peregrine;
+  }
+
+  // === ACCIDENTAL DIGNITY (ev pozisyonu) ===
+  const house = planet.house;
+  if ([1, 4, 7, 10].includes(house)) {
+    score += DIGNITY_SCORES.angular;   breakdown.angular   = DIGNITY_SCORES.angular;
+  } else if ([2, 5, 8, 11].includes(house)) {
+    score += DIGNITY_SCORES.succedent; breakdown.succedent = DIGNITY_SCORES.succedent;
+  } else {
+    score += DIGNITY_SCORES.cadent;    breakdown.cadent    = DIGNITY_SCORES.cadent;
+  }
+
+  // === MODIFIERS ===
+
+  // Retrograde
+  if (planet.isRetrograde) {
+    score += DIGNITY_SCORES.retrograde; breakdown.retrograde = DIGNITY_SCORES.retrograde;
+  }
+
+  // Combustion
+  if (planet.combustion) {
+    const cs = planet.combustion.status;
+    if (cs === 'cazimi')      { score += DIGNITY_SCORES.cazimi;      breakdown.cazimi      = DIGNITY_SCORES.cazimi; }
+    else if (cs === 'combust')     { score += DIGNITY_SCORES.combust;     breakdown.combust     = DIGNITY_SCORES.combust; }
+    else if (cs === 'under_beams') { score += DIGNITY_SCORES.under_beams; breakdown.under_beams = DIGNITY_SCORES.under_beams; }
+  }
+
+  // Speed
+  if (planet.speedAnalysis) {
+    const cls = planet.speedAnalysis.classification;
+    if (cls === 'stationary') { score += DIGNITY_SCORES.stationary; breakdown.stationary = DIGNITY_SCORES.stationary; }
+    else if (cls === 'slow')  { score += DIGNITY_SCORES.slow;      breakdown.slow       = DIGNITY_SCORES.slow; }
+    else if (cls === 'fast')  { score += DIGNITY_SCORES.fast;      breakdown.fast       = DIGNITY_SCORES.fast; }
+  }
+
+  // Strength label
+  let strength, strengthTr;
+  if (score >= 8)       { strength = 'very_strong'; strengthTr = 'Çok Güçlü'; }
+  else if (score >= 4)  { strength = 'strong';      strengthTr = 'Güçlü'; }
+  else if (score >= 0)  { strength = 'moderate';    strengthTr = 'Orta'; }
+  else if (score >= -4) { strength = 'weak';        strengthTr = 'Zayıf'; }
+  else                  { strength = 'very_weak';   strengthTr = 'Çok Zayıf'; }
+
+  return { totalScore: score, breakdown, strength, strengthTr };
 }
