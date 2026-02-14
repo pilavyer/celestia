@@ -1074,6 +1074,7 @@ if (medChart) {
         'angular', 'succedent', 'cadent',
         'retrograde', 'cazimi', 'combust', 'under_beams',
         'stationary', 'slow', 'fast',
+        'mutualReception',
       ];
       for (const key of Object.keys(ps.breakdown)) {
         if (!validKeys.includes(key)) {
@@ -1788,6 +1789,392 @@ if (medChart) {
     if (test35Valid) {
       console.log('BASARILI: Tum midpoint degerler 0-360 araliginda, opposite = midpoint + 180°');
       console.log(`  Mars/Saturn priority: ${mp.marsSaturnMidpoint.priority}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 36: Mutual Reception — tip, güç, tıbbi etki ==========
+console.log('\nTEST 36: Mutual Reception — domicile/exaltation/mixed detection');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const mr = medChart.analysis.medicalAstrology.mutualReceptions;
+    let test36Valid = true;
+
+    if (!Array.isArray(mr)) {
+      console.error('HATA: mutualReceptions array degil!');
+      test36Valid = false;
+    }
+
+    if (test36Valid) {
+      const validTypes = ['domicile', 'exaltation', 'mixed'];
+      const validStrengths = ['strong', 'moderate'];
+      for (const r of mr) {
+        if (!validTypes.includes(r.type)) {
+          console.error(`HATA: gecersiz reception type: ${r.type}`);
+          test36Valid = false;
+          break;
+        }
+        if (!validStrengths.includes(r.strength)) {
+          console.error(`HATA: gecersiz strength: ${r.strength}`);
+          test36Valid = false;
+          break;
+        }
+        if (!r.planet1 || !r.planet2 || !r.medicalEffect) {
+          console.error('HATA: reception alanlari eksik!');
+          test36Valid = false;
+          break;
+        }
+        // Kendisiyle reception olmamali
+        if (r.planet1 === r.planet2) {
+          console.error(`HATA: ${r.planet1} kendisiyle reception olusturmamali!`);
+          test36Valid = false;
+          break;
+        }
+      }
+    }
+
+    // Mutual reception olan gezegenlerde planetaryStrength.breakdown.mutualReception > 0 olmali
+    if (test36Valid && mr.length > 0) {
+      for (const r of mr) {
+        const p1 = medChart.planets.find(p => p.name === r.planet1);
+        if (p1 && p1.planetaryStrength && !p1.planetaryStrength.breakdown.mutualReception) {
+          console.error(`HATA: ${r.planet1} mutual reception var ama strength bonus yok!`);
+          test36Valid = false;
+          break;
+        }
+      }
+    }
+
+    if (test36Valid) {
+      console.log(`BASARILI: ${mr.length} mutual reception bulundu, strength bonuslari uygulanmis`);
+      for (const r of mr) {
+        console.log(`  ${r.planet1.padEnd(8)} <-> ${r.planet2.padEnd(8)} ${r.type.padEnd(12)} (${r.strength})`);
+      }
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 37: Dispositor Chain — final dispositor, zincir, döngü ==========
+console.log('\nTEST 37: Dispositor Chain — finalDispositors, chains, implication');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const dc = medChart.analysis.medicalAstrology.dispositorChain;
+    let test37Valid = true;
+
+    if (!dc || typeof dc !== 'object') {
+      console.error('HATA: dispositorChain objesi yok!');
+      test37Valid = false;
+    }
+
+    if (test37Valid) {
+      // dispositors objesi 7 geleneksel gezegeni icermeli
+      const tradPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+      for (const name of tradPlanets) {
+        if (!dc.dispositors[name]) {
+          console.error(`HATA: ${name} dispositor listesinde yok!`);
+          test37Valid = false;
+          break;
+        }
+        if (!dc.dispositors[name].sign || !dc.dispositors[name].dispositor) {
+          console.error(`HATA: ${name} dispositor alanlari eksik!`);
+          test37Valid = false;
+          break;
+        }
+      }
+
+      // finalDispositors array olmali
+      if (!Array.isArray(dc.finalDispositors)) {
+        console.error('HATA: finalDispositors array degil!');
+        test37Valid = false;
+      }
+
+      // Chains objesi her gezegen icin bir dizi icermeli (sonsuz dongu yok)
+      if (dc.chains) {
+        for (const name of tradPlanets) {
+          if (!Array.isArray(dc.chains[name]) || dc.chains[name].length === 0) {
+            console.error(`HATA: ${name} chain bos veya yok!`);
+            test37Valid = false;
+            break;
+          }
+          if (dc.chains[name].length > 10) {
+            console.error(`HATA: ${name} chain cok uzun (sonsuz dongu?): ${dc.chains[name].length}`);
+            test37Valid = false;
+            break;
+          }
+        }
+      }
+
+      // Final dispositor kendi burcunun yoneticisi olmali
+      for (const fd of dc.finalDispositors) {
+        const planet = medChart.planets.find(p => p.name === fd);
+        if (planet) {
+          const tradRulers = { Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon', Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars', Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter' };
+          if (tradRulers[planet.sign] !== fd) {
+            console.error(`HATA: ${fd} final dispositor ama ${planet.sign} burcunun yoneticisi degil!`);
+            test37Valid = false;
+          }
+        }
+      }
+    }
+
+    if (test37Valid) {
+      console.log(`BASARILI: Dispositor chain gecerli, ${dc.finalDispositors.length} final dispositor`);
+      console.log(`  Final: ${dc.finalDispositors.join(', ') || 'yok (dongusel)'}`);
+      console.log(`  Implication: ${dc.medicalImplication}`);
+      // Ilk 3 zincir
+      Object.entries(dc.chains).slice(0, 3).forEach(([name, chain]) => {
+        console.log(`  ${name}: ${chain.join(' -> ')}`);
+      });
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 38: Void of Course Moon — isVoid, degreesRemaining ==========
+console.log('\nTEST 38: Void of Course Moon — isVoid, degreesRemaining, medicalAdvice');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const voc = medChart.analysis.medicalAstrology.voidOfCourseMoon;
+    let test38Valid = true;
+
+    if (!voc || typeof voc !== 'object') {
+      console.error('HATA: voidOfCourseMoon objesi yok!');
+      test38Valid = false;
+    }
+
+    if (test38Valid) {
+      if (typeof voc.isVoid !== 'boolean') {
+        console.error(`HATA: isVoid boolean degil: ${typeof voc.isVoid}`);
+        test38Valid = false;
+      }
+      if (!voc.moonSign || typeof voc.moonSign !== 'string') {
+        console.error('HATA: moonSign eksik!');
+        test38Valid = false;
+      }
+      if (typeof voc.degreesRemaining !== 'number' || voc.degreesRemaining < 0 || voc.degreesRemaining > 30) {
+        console.error(`HATA: degreesRemaining gecersiz: ${voc.degreesRemaining}`);
+        test38Valid = false;
+      }
+      if (typeof voc.approximateHoursRemaining !== 'number' || voc.approximateHoursRemaining < 0) {
+        console.error(`HATA: approximateHoursRemaining gecersiz: ${voc.approximateHoursRemaining}`);
+        test38Valid = false;
+      }
+      // isVoid true ise medicalAdvice olmali
+      if (voc.isVoid && !voc.medicalAdvice) {
+        console.error('HATA: VoC true ama medicalAdvice yok!');
+        test38Valid = false;
+      }
+      // isVoid false ise medicalAdvice null olmali
+      if (!voc.isVoid && voc.medicalAdvice !== null) {
+        console.error('HATA: VoC false ama medicalAdvice null degil!');
+        test38Valid = false;
+      }
+    }
+
+    if (test38Valid) {
+      console.log(`BASARILI: VoC=${voc.isVoid} (${voc.isVoidTr}), Moon ${voc.moonSign}, ${voc.degreesRemaining}° kaldi (~${voc.approximateHoursRemaining}h)`);
+      if (voc.medicalAdvice) console.log(`  Uyari: ${voc.medicalAdvice}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 39: Prenatal Lunation — tip, JD, boylam ==========
+console.log('\nTEST 39: Prenatal Lunation — newMoon/fullMoon, JD < birth JD');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const pl = medChart.analysis.medicalAstrology.prenatalLunation;
+    let test39Valid = true;
+
+    if (!pl || typeof pl !== 'object') {
+      console.error('HATA: prenatalLunation objesi yok!');
+      test39Valid = false;
+    }
+
+    if (test39Valid) {
+      // Tip kontrolu
+      if (!['newMoon', 'fullMoon'].includes(pl.type)) {
+        console.error(`HATA: gecersiz lunation type: ${pl.type}`);
+        test39Valid = false;
+      }
+
+      // JD dogumdan once olmali
+      if (typeof pl.jd !== 'number' || pl.jd >= medChart.meta.julianDayET) {
+        console.error(`HATA: prenatal JD dogumdan sonra! PL=${pl.jd}, Birth=${medChart.meta.julianDayET}`);
+        test39Valid = false;
+      }
+
+      // Longitude 0-360
+      if (typeof pl.longitude !== 'number' || pl.longitude < 0 || pl.longitude >= 360) {
+        console.error(`HATA: longitude gecersiz: ${pl.longitude}`);
+        test39Valid = false;
+      }
+
+      // Sign ve formatted olmali
+      if (!pl.sign || !pl.formatted) {
+        console.error('HATA: sign veya formatted eksik!');
+        test39Valid = false;
+      }
+
+      // Dogumdan en fazla ~30 gun once olmali
+      const daysBefore = medChart.meta.julianDayET - pl.jd;
+      if (daysBefore > 30 || daysBefore < 0) {
+        console.error(`HATA: prenatal lunation ${daysBefore.toFixed(1)} gun once — 0-30 arasinda olmali`);
+        test39Valid = false;
+      }
+    }
+
+    if (test39Valid) {
+      const daysBefore = (medChart.meta.julianDayET - pl.jd).toFixed(1);
+      console.log(`BASARILI: ${pl.typeTr} (${pl.type}), ${pl.formatted}, ${daysBefore} gun once`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 40: Almuten Figuris — puan, allScores, implication ==========
+console.log('\nTEST 40: Almuten Figuris — almuten, score, allScores');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const af = medChart.analysis.medicalAstrology.almutenFiguris;
+    let test40Valid = true;
+
+    if (!af || typeof af !== 'object') {
+      console.error('HATA: almutenFiguris objesi yok!');
+      test40Valid = false;
+    }
+
+    if (test40Valid) {
+      // Almuten bir gezegen olmali
+      const validPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+      if (!validPlanets.includes(af.almuten)) {
+        console.error(`HATA: almuten gecersiz gezegen: ${af.almuten}`);
+        test40Valid = false;
+      }
+
+      // Score pozitif olmali
+      if (typeof af.score !== 'number' || af.score <= 0) {
+        console.error(`HATA: almuten score gecersiz: ${af.score}`);
+        test40Valid = false;
+      }
+
+      // allScores objesi olmali ve almuten en yuksek puana sahip olmali
+      if (!af.allScores || typeof af.allScores !== 'object') {
+        console.error('HATA: allScores yok!');
+        test40Valid = false;
+      } else {
+        const topEntry = Object.entries(af.allScores)[0];
+        if (topEntry[0] !== af.almuten || topEntry[1] !== af.score) {
+          console.error(`HATA: allScores siralama hatasi! Top: ${topEntry[0]}=${topEntry[1]}, Almuten: ${af.almuten}=${af.score}`);
+          test40Valid = false;
+        }
+      }
+
+      // medicalImplication olmali
+      if (!af.medicalImplication || typeof af.medicalImplication !== 'string') {
+        console.error('HATA: medicalImplication eksik!');
+        test40Valid = false;
+      }
+    }
+
+    if (test40Valid) {
+      console.log(`BASARILI: Almuten Figuris = ${af.almuten} (skor: ${af.score})`);
+      console.log(`  Skor tablosu: ${Object.entries(af.allScores).map(([k,v]) => `${k}:${v}`).join(', ')}`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 41: Almuten hylegical noktalar doğrulaması ==========
+console.log('\nTEST 41: Almuten Figuris — 5 hylegical nokta puanlaması tutarlılığı');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const af = medChart.analysis.medicalAstrology.almutenFiguris;
+    let test41Valid = true;
+
+    // Toplam puan: her nokta 11-15 puan dagitir
+    // (exaltation olmayan burclar: Gemini, Leo, Scorpio, Sagittarius, Aquarius → -4)
+    const pl = medChart.analysis.medicalAstrology.prenatalLunation;
+    const numPoints = pl ? 5 : 4;
+
+    const totalAllScores = Object.values(af.allScores).reduce((sum, v) => sum + v, 0);
+    const minPossible = numPoints * 11;
+    const maxPossible = numPoints * 15;
+
+    if (totalAllScores < minPossible || totalAllScores > maxPossible) {
+      console.error(`HATA: Toplam puan ${totalAllScores}, beklenen aralik ${minPossible}-${maxPossible}`);
+      test41Valid = false;
+    }
+
+    if (test41Valid) {
+      console.log(`BASARILI: ${numPoints} hylegical nokta, toplam ${totalAllScores} puan (aralik: ${minPossible}-${maxPossible})`);
+    }
+  } catch (e) {
+    console.error('HATA:', e.message);
+  }
+}
+
+// ========== TEST 42: Mutual Reception strength bonus tutarlılığı ==========
+console.log('\nTEST 42: Mutual Reception — strength bonus totalScore ile tutarli');
+console.log('-'.repeat(50));
+
+if (medChart) {
+  try {
+    const mr = medChart.analysis.medicalAstrology.mutualReceptions;
+    let test42Valid = true;
+
+    // Her reception'daki gezegenlerin breakdown'unda mutualReception > 0 olmali
+    // ve totalScore = sum(breakdown)
+    const involvedPlanets = new Set();
+    for (const r of mr) {
+      involvedPlanets.add(r.planet1);
+      involvedPlanets.add(r.planet2);
+    }
+
+    for (const pName of involvedPlanets) {
+      const planet = medChart.planets.find(p => p.name === pName);
+      if (!planet || !planet.planetaryStrength) continue;
+
+      const ps = planet.planetaryStrength;
+      const sum = Object.values(ps.breakdown).reduce((a, b) => a + b, 0);
+      if (sum !== ps.totalScore) {
+        console.error(`HATA: ${pName} breakdown toplami ${sum} != totalScore ${ps.totalScore}`);
+        test42Valid = false;
+        break;
+      }
+      if (!ps.breakdown.mutualReception || ps.breakdown.mutualReception <= 0) {
+        console.error(`HATA: ${pName} mutualReception bonus yok veya <= 0`);
+        test42Valid = false;
+        break;
+      }
+    }
+
+    if (test42Valid) {
+      console.log(`BASARILI: ${involvedPlanets.size} gezegen mutual reception bonusu aldi, toplam tutarli`);
+      for (const pName of involvedPlanets) {
+        const ps = medChart.planets.find(p => p.name === pName).planetaryStrength;
+        console.log(`  ${pName.padEnd(8)} total: ${String(ps.totalScore).padStart(3)}, mutualReception: +${ps.breakdown.mutualReception}`);
+      }
     }
   } catch (e) {
     console.error('HATA:', e.message);

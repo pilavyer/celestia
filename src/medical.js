@@ -221,6 +221,22 @@ export const PROGRESSED_MOON_HEALTH = {
   Pisces:      'immune weakness, feet, lymphatic, addiction vulnerability, psychosomatic',
 };
 
+/** Geleneksel burç yöneticileri (tıbbi astroloji — domicile) */
+export const TRADITIONAL_RULERS = {
+  Aries: 'Mars',      Taurus: 'Venus',     Gemini: 'Mercury',
+  Cancer: 'Moon',      Leo: 'Sun',          Virgo: 'Mercury',
+  Libra: 'Venus',      Scorpio: 'Mars',     Sagittarius: 'Jupiter',
+  Capricorn: 'Saturn', Aquarius: 'Saturn',  Pisces: 'Jupiter',
+};
+
+/** Exaltation yöneticileri (exaltation mutual reception için) */
+export const EXALTATION_RULERS = {
+  Aries: 'Sun',       Taurus: 'Moon',      Cancer: 'Jupiter',
+  Virgo: 'Mercury',   Libra: 'Saturn',     Capricorn: 'Mars',
+  Pisces: 'Venus',
+  // Gemini, Leo, Scorpio, Sagittarius, Aquarius → exaltation yok
+};
+
 /** Ebertin tıbbi midpoint kataloğu */
 export const MEDICAL_MIDPOINTS = {
   'Sun/Moon':       { meaning: 'psychosomatic balance, overall vitality integration',     medical: 'constitution core — a transit here affects total health' },
@@ -661,4 +677,252 @@ export function calculatePlanetaryStrength(planet, isDayChart) {
   else                  { strength = 'very_weak';   strengthTr = 'Çok Zayıf'; }
 
   return { totalScore: score, breakdown, strength, strengthTr };
+}
+
+/**
+ * 9. Mutual Reception (Karşılıklı Kabul) tespiti
+ * İki gezegen birbirinin burcundaysa gizli güç alışverişi.
+ * @param {Array} planets - Gezegen dizisi (name, sign)
+ * @returns {Array}
+ */
+export function findMutualReceptions(planets) {
+  const receptions = [];
+  const mainPlanets = planets.filter(p =>
+    ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].includes(p.name)
+  );
+
+  for (let i = 0; i < mainPlanets.length; i++) {
+    for (let j = i + 1; j < mainPlanets.length; j++) {
+      const p1 = mainPlanets[i];
+      const p2 = mainPlanets[j];
+
+      // Domicile mutual reception
+      if (TRADITIONAL_RULERS[p1.sign] === p2.name &&
+          TRADITIONAL_RULERS[p2.sign] === p1.name) {
+        receptions.push({
+          planet1: p1.name, planet1Tr: p1.trName,
+          planet2: p2.name, planet2Tr: p2.trName,
+          type: 'domicile', typeTr: 'Domicile (Hane)',
+          strength: 'strong',
+          medicalEffect: `${p1.name} and ${p2.name} mutually support each other — health areas of both are protected`,
+        });
+      }
+
+      // Exaltation mutual reception
+      if (EXALTATION_RULERS[p1.sign] === p2.name &&
+          EXALTATION_RULERS[p2.sign] === p1.name) {
+        receptions.push({
+          planet1: p1.name, planet1Tr: p1.trName,
+          planet2: p2.name, planet2Tr: p2.trName,
+          type: 'exaltation', typeTr: 'Exaltation (Yücelme)',
+          strength: 'moderate',
+          medicalEffect: `${p1.name} and ${p2.name} exchange exaltation dignity — recovery potential`,
+        });
+      }
+
+      // Mixed reception (biri domicile, diğeri exaltation)
+      const p1DomRuler = TRADITIONAL_RULERS[p1.sign];
+      const p2DomRuler = TRADITIONAL_RULERS[p2.sign];
+      const p1ExRuler = EXALTATION_RULERS[p1.sign] || null;
+      const p2ExRuler = EXALTATION_RULERS[p2.sign] || null;
+
+      if ((p1DomRuler === p2.name && p2ExRuler === p1.name) ||
+          (p1ExRuler === p2.name && p2DomRuler === p1.name)) {
+        // Domicile/exaltation çifti zaten yakalanmış mı kontrol et
+        const alreadyFound = receptions.some(r =>
+          ((r.planet1 === p1.name && r.planet2 === p2.name) ||
+           (r.planet1 === p2.name && r.planet2 === p1.name)) &&
+          (r.type === 'domicile' || r.type === 'exaltation')
+        );
+        if (!alreadyFound) {
+          receptions.push({
+            planet1: p1.name, planet1Tr: p1.trName,
+            planet2: p2.name, planet2Tr: p2.trName,
+            type: 'mixed', typeTr: 'Karışık (Domicile/Exaltation)',
+            strength: 'moderate',
+            medicalEffect: `${p1.name} and ${p2.name} mixed reception — partial health support`,
+          });
+        }
+      }
+    }
+  }
+
+  return receptions;
+}
+
+/**
+ * 10. Dispositor Chain (Yönetici Zinciri)
+ * Her gezegen bir burcun misafiri → o burcun yöneticisi zinciri.
+ * @param {Array} planets - Gezegen dizisi (name, sign)
+ * @returns {{ dispositors: object, finalDispositors: string[], chains: object, medicalImplication: string }}
+ */
+export function buildDispositorChain(planets) {
+  const mainPlanets = planets.filter(p =>
+    ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].includes(p.name)
+  );
+
+  const dispositors = {};
+  for (const p of mainPlanets) {
+    const ruler = TRADITIONAL_RULERS[p.sign];
+    const rulerPlanet = mainPlanets.find(mp => mp.name === ruler);
+    dispositors[p.name] = {
+      sign: p.sign,
+      signTr: p.trName,
+      dispositor: ruler,
+      dispositorSign: rulerPlanet ? rulerPlanet.sign : null,
+    };
+  }
+
+  // Final dispositor: kendi burcunun yöneticisi olan gezegen
+  const finalDispositors = mainPlanets
+    .filter(p => TRADITIONAL_RULERS[p.sign] === p.name)
+    .map(p => p.name);
+
+  // Zincir takibi: her gezegenden başlayıp final veya döngüye ulaşma
+  const chains = {};
+  for (const p of mainPlanets) {
+    const visited = [];
+    let current = p.name;
+    while (!visited.includes(current) && dispositors[current]) {
+      visited.push(current);
+      current = dispositors[current].dispositor;
+    }
+    if (!visited.includes(current)) visited.push(current);
+    chains[p.name] = visited;
+  }
+
+  const medicalImplication = finalDispositors.length > 0
+    ? `${finalDispositors.join(', ')} controls the entire chart — its health areas are the foundation`
+    : 'No final dispositor — circular dependency, distributed health focus';
+
+  return { dispositors, finalDispositors, chains, medicalImplication };
+}
+
+/**
+ * 11. Almuten Figuris (Haritanın En Güçlü Gezegeni)
+ * 5 hylegical noktanın dignity lord'larını puanlayarak en güçlü gezegeni bulur.
+ * @param {Array} planets - Gezegen dizisi
+ * @param {number} ascLon - Ascendant boylamı
+ * @param {number} mcLon - MC boylamı
+ * @param {boolean} isDayChart
+ * @param {number} pofLon - Part of Fortune boylamı
+ * @param {number|null} syzygyLon - Prenatal Lunation boylamı
+ * @returns {{ almuten: string, score: number, allScores: object, medicalImplication: string }}
+ */
+export function calculateAlmutenFiguris(planets, ascLon, mcLon, isDayChart, pofLon, syzygyLon) {
+  const sunPlanet = planets.find(p => p.name === 'Sun');
+  const moonPlanet = planets.find(p => p.name === 'Moon');
+
+  const hylegialPoints = [
+    { name: 'Sun', longitude: sunPlanet ? sunPlanet.longitude : 0 },
+    { name: 'Moon', longitude: moonPlanet ? moonPlanet.longitude : 0 },
+    { name: 'ASC', longitude: ascLon },
+    { name: 'PoF', longitude: pofLon },
+  ];
+  if (syzygyLon !== null && syzygyLon !== undefined) {
+    hylegialPoints.push({ name: 'Syzygy', longitude: syzygyLon });
+  }
+
+  const scores = {};
+
+  for (const point of hylegialPoints) {
+    const sign = longitudeToSign(point.longitude).sign;
+    const degree = Math.floor(point.longitude % 30);
+    const element = SIGN_ELEMENT[sign];
+
+    // Domicile lord → +5
+    const domLord = TRADITIONAL_RULERS[sign];
+    if (domLord) scores[domLord] = (scores[domLord] || 0) + 5;
+
+    // Exaltation lord → +4
+    const exLord = EXALTATION_RULERS[sign];
+    if (exLord) scores[exLord] = (scores[exLord] || 0) + 4;
+
+    // Triplicity lord → +3
+    if (element) {
+      const trip = TRIPLICITY[element];
+      const tripLord = isDayChart ? trip.day : trip.night;
+      scores[tripLord] = (scores[tripLord] || 0) + 3;
+    }
+
+    // Term lord → +2
+    const termEntries = TERMS[sign];
+    if (termEntries) {
+      const termEntry = termEntries.find(t => degree >= t[1] && degree < t[2]);
+      if (termEntry) scores[termEntry[0]] = (scores[termEntry[0]] || 0) + 2;
+    }
+
+    // Face lord → +1
+    const faceData = FACES[sign];
+    if (faceData) {
+      const faceIndex = Math.floor(degree / 10);
+      scores[faceData[faceIndex]] = (scores[faceData[faceIndex]] || 0) + 1;
+    }
+  }
+
+  // En yüksek puanlı gezegen = Almuten Figuris
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const almuten = sorted.length > 0 ? sorted[0][0] : null;
+  const topScore = sorted.length > 0 ? sorted[0][1] : 0;
+
+  return {
+    almuten,
+    score: topScore,
+    allScores: Object.fromEntries(sorted),
+    medicalImplication: almuten
+      ? `${almuten} is the Almuten Figuris — the true ruler of this chart. Its condition determines the overall constitutional strength.`
+      : 'Unable to determine Almuten Figuris',
+  };
+}
+
+/**
+ * 12. Void of Course Moon
+ * Ay son aspektini yaptıktan sonra burç değiştirene kadar "boşta" kabul edilir.
+ * @param {number} moonLon - Ay'ın ekliptik boylamı
+ * @param {string} moonSign - Ay'ın bulunduğu burç
+ * @param {Array} planets - Tüm gezegenler dizisi
+ * @returns {{ isVoid: boolean, moonSign: string, degreesRemaining: number, approximateHoursRemaining: number, medicalAdvice: string|null }}
+ */
+export function isVoidOfCourse(moonLon, moonSign, planets) {
+  const signStart = Math.floor(moonLon / 30) * 30;
+  const signEnd = signStart + 30;
+  const degreesRemaining = roundTo(signEnd - moonLon, 2);
+
+  const majorAspects = [0, 60, 90, 120, 180];
+  let hasUpcomingAspect = false;
+
+  for (const planet of planets) {
+    if (planet.name === 'Moon') continue;
+    // Node ve Lilith hariç (geleneksel olarak VoC hesabına dahil edilmez)
+    if (['True Node', 'South Node', 'Lilith'].includes(planet.name)) continue;
+
+    for (const aspectAngle of majorAspects) {
+      // İki yönlü kontakt noktaları
+      const contactPoints = [
+        (planet.longitude + aspectAngle) % 360,
+        (planet.longitude - aspectAngle + 360) % 360,
+      ];
+
+      for (const cp of contactPoints) {
+        // Kontakt noktası Ay'ın burcunda ve ilerisinde mi?
+        if (cp >= signStart && cp < signEnd && cp > moonLon) {
+          hasUpcomingAspect = true;
+          break;
+        }
+      }
+      if (hasUpcomingAspect) break;
+    }
+    if (hasUpcomingAspect) break;
+  }
+
+  return {
+    isVoid: !hasUpcomingAspect,
+    isVoidTr: !hasUpcomingAspect ? 'Boşta (Void of Course)' : 'Aktif',
+    moonSign,
+    degreesRemaining,
+    approximateHoursRemaining: roundTo((degreesRemaining / 13) * 24, 1),
+    medicalAdvice: !hasUpcomingAspect
+      ? 'Avoid starting new treatments, surgeries, or medical consultations during Void of Course Moon'
+      : null,
+  };
 }

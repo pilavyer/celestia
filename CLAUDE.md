@@ -39,7 +39,7 @@ Converts local birth time to UTC using Luxon. Handles DST spring-forward gaps (t
 Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfFortune()`, element/modality distribution, hemisphere emphasis, `findPlanetInHouse()`.
 
 ### `src/medical.js`
-Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, medical Arabic parts, Dorothean triplicity, Egyptian terms, Chaldean faces, Lilly dignity scores, 22 medical fixed stars catalog, OOB medical interpretations, progressed Moon health themes (12 signs), and 23 Ebertin medical midpoint pairs. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections), `calculatePlanetaryStrength()` (Lilly-system essential+accidental dignity scoring with full breakdown). Fixed star conjunctions, declination, parallel aspects, secondary progressions (day-for-a-year with solar arc ASC/MC), solar return (bisection search for exact Sun return with health analysis), and medical midpoints (Ebertin 90° dial with natal contacts) are computed in `calculator.js`.
+Medical astrology module. Lookup tables for sign→body areas, planet→body systems, house→health domains, critical degrees, average planetary speeds, medical Arabic parts, Dorothean triplicity, Egyptian terms, Chaldean faces, Lilly dignity scores, 22 medical fixed stars catalog, OOB medical interpretations, progressed Moon health themes (12 signs), 23 Ebertin medical midpoint pairs, traditional rulers, and exaltation rulers. Functions: `getBodyAreas()`, `getCombustionStatus()` (cazimi/combust/under beams), `getCriticalDegree()`, `getSpeedClassification()`, `calculateProfection()` (annual profection with year lord), `calculateMedicalArabicParts()` (6 medical lots), `calculateAntiscia()` (antiscion/contra-antiscion with hidden connections), `calculatePlanetaryStrength()` (Lilly-system essential+accidental dignity scoring with mutual reception bonus), `findMutualReceptions()` (domicile/exaltation/mixed), `buildDispositorChain()` (final dispositor + chain tracing), `calculateAlmutenFiguris()` (5 hylegical points dignity scoring), `isVoidOfCourse()` (natal VoC Moon detection). Fixed star conjunctions, declination, parallel aspects, secondary progressions, solar return, medical midpoints, and prenatal lunation (bisection-based syzygy search) are computed in `calculator.js`.
 
 ### `src/constants.js`
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, and modalities.
@@ -80,13 +80,13 @@ Version history in [Keep a Changelog](https://keepachangelog.com) format. Update
 ```bash
 npm start        # Start production server (port 3000)
 npm run dev      # Start with nodemon (auto-reload)
-npm test         # Run 35-test suite (natal, synastry, transit, medical, strength, stars, declination, progressions, solar return, midpoints)
+npm test         # Run 42-test suite (natal, synastry, transit, medical, strength, stars, declination, progressions, solar return, midpoints, mutual reception, dispositor, VoC, prenatal lunation, almuten)
 npm run compare  # Run compare.js (dev utility, not committed)
 ```
 
 ## Tests
 
-`test.js` contains 35 tests:
+`test.js` contains 42 tests:
 - Tests 1-5: Natal chart (Istanbul, DST, New York, high latitude, full output)
 - Tests 6-8: Synastry (basic, house overlay, composite midpoint)
 - Tests 9-13: Transit (response shape, orb validation, event timing, lunar metrics, aspect angle validation)
@@ -96,6 +96,9 @@ npm run compare  # Run compare.js (dev utility, not committed)
 - Tests 29-30: Secondary progressions (age/solarArc/progressedMoon + progressed aspects to natal)
 - Tests 31-32: Solar return (sun accuracy < 0.01° + health analysis structure)
 - Tests 33-35: Medical midpoints (catalog/Mars-Saturn + 90° dial natal contacts + wrap-around validation)
+- Tests 36-37: Mutual reception (detection + strength bonus) and dispositor chain (final dispositor + chain tracing)
+- Tests 38-39: Void of Course Moon (isVoid + degreesRemaining) and prenatal lunation (syzygy type + JD before birth)
+- Tests 40-42: Almuten Figuris (scores + hylegical points consistency) and mutual reception bonus consistency
 
 Run with `node test.js` — all tests should print "BASARILI" (success).
 

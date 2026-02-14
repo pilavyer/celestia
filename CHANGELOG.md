@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-02-14
 
 ### Added
-- **Medical astrology module** (`src/medical.js`): 11 features for health-oriented chart analysis
+- **Medical astrology module** (`src/medical.js`): 16 features for health-oriented chart analysis
 - **Body area mapping**: each planet enriched with `bodyAreas` combining planet and sign body rulerships
 - **Combustion status**: cazimi (≤0.283°), combust (≤8.5°), under the beams (≤17°), or free for each planet relative to the Sun
 - **Critical degrees**: cardinal (0°, 13°, 26°), fixed (9°, 21°), mutable (4°, 17°) and anaretic (29°) detection
@@ -25,8 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Secondary progressions**: day-for-a-year method with all 13 progressed planet positions, solar arc ASC/MC advancement, progressed Moon sign with health theme (12-sign PROGRESSED_MOON_HEALTH lookup), and progressed-to-natal aspects (1° orb, 5 aspect types)
 - **Solar return**: bisection search (`findExactSunReturn`) for exact JD when Sun returns to natal degree (< 0.01° accuracy), full return chart with planets/ASC/MC at birth coordinates, health analysis (6th/8th/12th house lords, malefic/benefic placement, risk level 0-10)
 - **Medical midpoints** (Ebertin system): 23 medically significant planet pairs, shortest-arc midpoint calculation (`calcMidpoint`), 90° dial natal contacts (0°/90°/180°/270° with 1.5° orb), Mars/Saturn midpoint highlighted as critical priority
+- **Mutual reception**: domicile, exaltation, and mixed (domicile/exaltation) mutual reception detection between traditional planets, with strength bonus (+4 domicile, +2 exaltation/mixed) applied to planetary strength scores
+- **Dispositor chain**: traditional ruler chain tracing, final dispositor detection (planet ruling its own sign), circular dependency handling, medical implication text
+- **Void of Course Moon**: natal VoC detection by checking remaining major aspects (0°/60°/90°/120°/180°) before Moon leaves current sign, with medical advice text
+- **Prenatal lunation** (Syzygy): backwards scan from birth JD with bisection refinement for exact new moon or full moon before birth, used as 5th hylegical point in Almuten Figuris
+- **Almuten Figuris**: dignity scoring across 5 hylegical points (Sun, Moon, ASC, Part of Fortune, prenatal syzygy) using domicile (+5), exaltation (+4), triplicity (+3), term (+2), face (+1) to determine the chart's true ruler
 - `ephe/sefstars.txt` — Swiss Ephemeris fixed star catalog (1602 stars)
-- 22 new tests (Tests 14-35): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia, planetary strength score, breakdown consistency, known dignity validation, fixed star conjunctions, declination values, planet declination fields, parallel aspects, OOB consistency, secondary progressions (structure + aspects), solar return (accuracy + health analysis), medical midpoints (catalog + contacts + wrap-around)
+- 29 new tests (Tests 14-42): body areas, combustion, critical degrees, speed analysis, profection, Arabic parts, antiscia, planetary strength score, breakdown consistency, known dignity validation, fixed star conjunctions, declination values, planet declination fields, parallel aspects, OOB consistency, secondary progressions (structure + aspects), solar return (accuracy + health analysis), medical midpoints (catalog + contacts + wrap-around), mutual reception (detection + strength bonus), dispositor chain (final dispositor + chain tracing), VoC Moon, prenatal lunation (syzygy type + JD validation), Almuten Figuris (scores + hylegical consistency), mutual reception bonus consistency
 
 ## [2.0.0] - 2026-02-12
 

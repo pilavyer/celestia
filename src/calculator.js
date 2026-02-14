@@ -23,6 +23,8 @@ import {
   calculateMedicalArabicParts, calculateAntiscia, HOUSE_HEALTH_MAP,
   MEDICAL_FIXED_STARS, OOB_MEDICAL,
   PROGRESSED_MOON_HEALTH, MEDICAL_MIDPOINTS, SIGN_BODY_MAP,
+  findMutualReceptions, buildDispositorChain, calculateAlmutenFiguris,
+  isVoidOfCourse, TRADITIONAL_RULERS, EXALTATION_RULERS,
 } from './medical.js';
 
 const require = createRequire(import.meta.url);
@@ -362,6 +364,45 @@ export function calculateNatalChart({
   // Medical Midpoints
   const midpoints = calculateMedicalMidpointsInternal(planetsWithHouses, ascendant, midheaven);
 
+  // Mutual Reception
+  const mutualReceptions = findMutualReceptions(planetsWithHouses);
+
+  // Mutual reception bonus → planetary strength'e ekle (accumulate)
+  for (const reception of mutualReceptions) {
+    const bonus = reception.type === 'domicile' ? 4 : 2;
+    for (const pName of [reception.planet1, reception.planet2]) {
+      const p = planetsWithHouses.find(pl => pl.name === pName);
+      if (p && p.planetaryStrength) {
+        p.planetaryStrength.totalScore += bonus;
+        p.planetaryStrength.breakdown.mutualReception = (p.planetaryStrength.breakdown.mutualReception || 0) + bonus;
+        const s = p.planetaryStrength.totalScore;
+        if (s >= 8)      { p.planetaryStrength.strength = 'very_strong'; p.planetaryStrength.strengthTr = 'Çok Güçlü'; }
+        else if (s >= 4) { p.planetaryStrength.strength = 'strong';      p.planetaryStrength.strengthTr = 'Güçlü'; }
+        else if (s >= 0) { p.planetaryStrength.strength = 'moderate';    p.planetaryStrength.strengthTr = 'Orta'; }
+        else if (s >= -4){ p.planetaryStrength.strength = 'weak';        p.planetaryStrength.strengthTr = 'Zayıf'; }
+        else             { p.planetaryStrength.strength = 'very_weak';   p.planetaryStrength.strengthTr = 'Çok Zayıf'; }
+      }
+    }
+  }
+
+  // Dispositor Chain
+  const dispositorChain = buildDispositorChain(planetsWithHouses);
+
+  // Void of Course Moon
+  const moonPlanet = planetsWithHouses.find(p => p.name === 'Moon');
+  const voidOfCourseMoon = moonPlanet
+    ? isVoidOfCourse(moonPlanet.longitude, moonPlanet.sign, planetsWithHouses)
+    : null;
+
+  // Prenatal Lunation (Syzygy)
+  const prenatalLunation = findPrenatalLunation(jd_et);
+
+  // Almuten Figuris
+  const almutenFiguris = calculateAlmutenFiguris(
+    planetsWithHouses, ascendant, midheaven, isDayChart,
+    partOfFortune, prenatalLunation ? prenatalLunation.longitude : null
+  );
+
   // ========== SONUÇ ==========
 
   return {
@@ -433,6 +474,11 @@ export function calculateNatalChart({
         secondaryProgressions,
         solarReturn,
         midpoints,
+        mutualReceptions,
+        dispositorChain,
+        voidOfCourseMoon,
+        prenatalLunation,
+        almutenFiguris,
       },
     },
 
@@ -1050,4 +1096,105 @@ function calcMidpoint(lon1, lon2) {
   if (mp < 0) mp += 360;
   if (mp >= 360) mp -= 360;
   return mp;
+}
+
+/**
+ * Prenatal Lunation (Syzygy) — doğumdan önceki son yeni ay veya dolunay
+ * @param {number} jd_et - Doğum JD (Ephemeris Time)
+ * @returns {{ type: string, typeTr: string, jd: number, longitude: number, sign: string, degree: number, formatted: string } | null}
+ */
+function findPrenatalLunation(jd_et) {
+  const calcFlags = swe.constants.SEFLG_SWIEPH;
+  const step = 0.5;
+
+  function getElongation(jd) {
+    const sunLon = swe.calc_ut(jd, 0, calcFlags).data[0];
+    const moonLon = swe.calc_ut(jd, 1, calcFlags).data[0];
+    return ((moonLon - sunLon) + 360) % 360;
+  }
+
+  let prevDiff = getElongation(jd_et);
+
+  // Geriye doğru tara (en fazla ~30 gün, Ay döngüsü ~29.5 gün)
+  for (let i = 1; i <= 62; i++) {
+    const jd = jd_et - (i * step);
+    const diff = getElongation(jd);
+
+    // Geriye giderken elongation artıyor (Ay ileri zamanda daha hızlı)
+    // Yeni ay: diff küçükten büyüğe geçiş (0° sınırında wrap: prev < 10, diff > 350)
+    if (prevDiff < 30 && diff > 330) {
+      const exactJD = refineSyzygyJD(jd, jd + step, 'newMoon');
+      const sunLon = swe.calc_ut(exactJD, 0, calcFlags).data[0];
+      const signData = longitudeToSign(sunLon);
+      return {
+        type: 'newMoon',
+        typeTr: 'Yeni Ay',
+        jd: roundTo(exactJD, 8),
+        longitude: roundTo(sunLon, 6),
+        sign: signData.sign,
+        degree: signData.degree,
+        formatted: `${signData.degree}°${String(signData.minute).padStart(2, '0')}' ${signData.sign}`,
+      };
+    }
+
+    // Dolunay: diff 180°'yi yukarıdan aşağı geçti (geriye giderken: prev > 180, diff < 180 → ileriye: diff < 180, prev > 180)
+    // Geriye giderken elongation artıyor, dolunay geçilirken 180°'nin altından üstüne geçer
+    if (prevDiff < 180 && diff >= 180) {
+      const exactJD = refineSyzygyJD(jd, jd + step, 'fullMoon');
+      const moonLon = swe.calc_ut(exactJD, 1, calcFlags).data[0];
+      const signData = longitudeToSign(moonLon);
+      return {
+        type: 'fullMoon',
+        typeTr: 'Dolunay',
+        jd: roundTo(exactJD, 8),
+        longitude: roundTo(moonLon, 6),
+        sign: signData.sign,
+        degree: signData.degree,
+        formatted: `${signData.degree}°${String(signData.minute).padStart(2, '0')}' ${signData.sign}`,
+      };
+    }
+
+    prevDiff = diff;
+  }
+
+  return null;
+}
+
+/**
+ * Syzygy JD'sini bisection ile hassaslaştır
+ */
+function refineSyzygyJD(jd1, jd2, type) {
+  const calcFlags = swe.constants.SEFLG_SWIEPH;
+
+  function getElongation(jd) {
+    const sunLon = swe.calc_ut(jd, 0, calcFlags).data[0];
+    const moonLon = swe.calc_ut(jd, 1, calcFlags).data[0];
+    return ((moonLon - sunLon) + 360) % 360;
+  }
+
+  // 25 iterasyon bisection
+  for (let i = 0; i < 25; i++) {
+    const midJD = (jd1 + jd2) / 2;
+    const diff = getElongation(midJD);
+
+    if (type === 'newMoon') {
+      // Yeni ay: diff ≈ 0° (veya 360°'ye yakın)
+      // jd1 tarafında diff > 330, jd2 tarafında diff < 30
+      if (diff > 180) {
+        jd2 = midJD; // Henüz yeni aya ulaşmadık (elongation hala büyük)
+      } else {
+        jd1 = midJD; // Yeni ayı geçtik
+      }
+    } else {
+      // Dolunay: diff ≈ 180°
+      // jd1 tarafında diff >= 180, jd2 tarafında diff < 180
+      if (diff >= 180) {
+        jd2 = midJD;
+      } else {
+        jd1 = midJD;
+      }
+    }
+  }
+
+  return (jd1 + jd2) / 2;
 }
