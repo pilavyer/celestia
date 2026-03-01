@@ -1,6 +1,7 @@
 // server.js
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { createRequire } from 'module';
 import { calculateNatalChart } from './src/calculator.js';
 import { calculateSynastry } from './src/synastry.js';
@@ -13,8 +14,42 @@ const { version } = require('./package.json');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// ========== MIDDLEWARE ==========
+
+// CORS — configurable via CORS_ORIGIN env var (defaults to allow all for development)
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+}));
+
 app.use(express.json());
+
+// Rate limiting — 100 requests per 15 minutes per IP on /api/ routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+app.use('/api/', apiLimiter);
+
+// ========== HELPERS ==========
+
+function toInt(value, field) {
+  const n = parseInt(value, 10);
+  if (Number.isNaN(n)) {
+    throw new Error(`Invalid ${field}: "${value}" is not a valid integer`);
+  }
+  return n;
+}
+
+function toFloat(value, field) {
+  const n = parseFloat(value);
+  if (Number.isNaN(n)) {
+    throw new Error(`Invalid ${field}: "${value}" is not a valid number`);
+  }
+  return n;
+}
 
 // ========== HEALTH CHECK ==========
 app.get('/health', (req, res) => {
@@ -50,13 +85,13 @@ app.post('/api/natal-chart', (req, res) => {
     }
 
     const chart = calculateNatalChart({
-      year: parseInt(year),
-      month: parseInt(month),
-      day: parseInt(day),
-      hour: parseInt(hour),
-      minute: parseInt(minute),
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
       timezone,
       houseSystem: houseSystem || 'P',
     });
@@ -110,24 +145,24 @@ app.post('/api/synastry', (req, res) => {
 
     const result = calculateSynastry(
       {
-        year: parseInt(person1.year),
-        month: parseInt(person1.month),
-        day: parseInt(person1.day),
-        hour: parseInt(person1.hour),
-        minute: parseInt(person1.minute),
-        latitude: parseFloat(person1.latitude),
-        longitude: parseFloat(person1.longitude),
+        year: toInt(person1.year, 'person1.year'),
+        month: toInt(person1.month, 'person1.month'),
+        day: toInt(person1.day, 'person1.day'),
+        hour: toInt(person1.hour, 'person1.hour'),
+        minute: toInt(person1.minute, 'person1.minute'),
+        latitude: toFloat(person1.latitude, 'person1.latitude'),
+        longitude: toFloat(person1.longitude, 'person1.longitude'),
         timezone: person1.timezone,
         houseSystem: person1.houseSystem || 'P',
       },
       {
-        year: parseInt(person2.year),
-        month: parseInt(person2.month),
-        day: parseInt(person2.day),
-        hour: parseInt(person2.hour),
-        minute: parseInt(person2.minute),
-        latitude: parseFloat(person2.latitude),
-        longitude: parseFloat(person2.longitude),
+        year: toInt(person2.year, 'person2.year'),
+        month: toInt(person2.month, 'person2.month'),
+        day: toInt(person2.day, 'person2.day'),
+        hour: toInt(person2.hour, 'person2.hour'),
+        minute: toInt(person2.minute, 'person2.minute'),
+        latitude: toFloat(person2.latitude, 'person2.latitude'),
+        longitude: toFloat(person2.longitude, 'person2.longitude'),
         timezone: person2.timezone,
         houseSystem: person2.houseSystem || 'P',
       }
@@ -175,7 +210,7 @@ app.post('/api/transits', (req, res) => {
     }
 
     // days validation
-    const periodDays = days ? parseInt(days) : 30;
+    const periodDays = days ? toInt(days, 'days') : 30;
     if (periodDays < 1 || periodDays > 365) {
       return res.status(400).json({
         error: 'days must be between 1 and 365',
@@ -184,20 +219,20 @@ app.post('/api/transits', (req, res) => {
 
     const result = calculateTransits(
       {
-        year: parseInt(year),
-        month: parseInt(month),
-        day: parseInt(day),
-        hour: parseInt(hour),
-        minute: parseInt(minute),
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
+        year: toInt(year, 'year'),
+        month: toInt(month, 'month'),
+        day: toInt(day, 'day'),
+        hour: toInt(hour, 'hour'),
+        minute: toInt(minute, 'minute'),
+        latitude: toFloat(latitude, 'latitude'),
+        longitude: toFloat(longitude, 'longitude'),
         timezone,
         houseSystem: houseSystem || 'P',
       },
       {
         days: periodDays,
         startDate: startDate || null,
-        topN: topN ? parseInt(topN) : 10,
+        topN: topN ? toInt(topN, 'topN') : 10,
       }
     );
 
@@ -224,4 +259,15 @@ app.listen(PORT, () => {
   console.log(`API endpoint: POST http://localhost:${PORT}/api/synastry`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/transits`);
   console.log(`Health check: GET http://localhost:${PORT}/health`);
+});
+
+// ========== PROCESS ERROR HANDLERS ==========
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  process.exit(1);
 });
