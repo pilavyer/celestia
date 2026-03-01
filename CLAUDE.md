@@ -15,7 +15,7 @@ Celestia is a high-precision astrology calculation engine exposing a REST API. I
 ## Architecture
 
 ### `server.js`
-Express app with 5 endpoints: `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `GET /api/house-systems`, `GET /health`. Input validation and error handling per endpoint.
+Express app with 5 endpoints: `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `GET /api/house-systems`, `GET /health`. Input validation via `toInt()`/`toFloat()` helpers, rate limiting (100 req/15min per IP via `express-rate-limit`), configurable CORS via `CORS_ORIGIN` env var.
 
 ### `src/calculator.js`
 Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, chart ruler, house rulers).
@@ -83,6 +83,13 @@ npm start        # Start production server (port 3000)
 npm run dev      # Start with nodemon (auto-reload)
 npm test         # Run 13-test suite (natal, synastry, transit, lunar)
 npm run compare  # Run compare.js (dev utility, not committed)
+
+# Verification suite (27,000+ checks)
+node verify-precision.js       # Swiss Ephemeris precision (52 checks)
+node verify-comprehensive.js   # 40 charts, planet/house/sign (2,765 checks)
+node verify-famous-charts.js   # 15 famous charts (658 checks)
+node verify-exhaustive.js      # All derived fields: aspects, dignities, PoF, etc. (23,396 checks)
+node verify-astrodatabank.js   # 10 Astro-Databank reference charts
 ```
 
 ## Tests
@@ -94,7 +101,13 @@ npm run compare  # Run compare.js (dev utility, not committed)
 
 Run with `node test.js` — all tests should print "PASS".
 
+## Environment Variables
+
+- `PORT` — Server port (default: 3000)
+- `CORS_ORIGIN` — Allowed CORS origin (default: `*` for development)
+
 ## Security
 
 - `compare.js` and `verify-synastry.js` contain API keys — they are in `.gitignore` and must NEVER be committed
+- Rate limiting: 100 requests per 15 minutes per IP on `/api/` routes
 - No other secrets or environment variables are required to run the project

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-03-01
+
+### Fixed
+- **Critical**: Use `swe.calc(jd_et)` instead of `swe.calc_ut(jd_et)` for planet positions — the old call double-applied deltaT (~62-69 seconds), causing ~32-34 arcsecond Moon errors and potential house misassignment near cusp boundaries
+- `longitudeToSign()` second overflow — was clamping 60→59 instead of properly carrying over to minute/degree/sign
+
+### Added
+- Rate limiting on API routes (100 req/15min per IP via `express-rate-limit`)
+- Configurable CORS via `CORS_ORIGIN` env var
+- `toInt()`/`toFloat()` input validation helpers with descriptive error messages
+- Verification suite (27,000+ checks):
+  - `verify-comprehensive.js` — 40 charts, 2,765 checks
+  - `verify-famous-charts.js` — 15 famous charts, 658 checks
+  - `verify-exhaustive.js` — 25 charts, 23,396 checks across all derived fields
+  - `verify-astrodatabank.js` — 10 Astro-Databank reference charts
+
 ## [3.0.0] - 2026-02-14
 
 ### Changed
