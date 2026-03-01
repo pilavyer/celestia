@@ -18,7 +18,7 @@ Celestia is a high-precision astrology calculation engine exposing a REST API. I
 Express app with 5 endpoints: `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `GET /api/house-systems`, `GET /health`. Input validation and error handling per endpoint.
 
 ### `src/calculator.js`
-Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc_ut()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, chart ruler, house rulers).
+Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, chart ruler, house rulers).
 
 ### `src/synastry.js`
 Computes two natal charts, then: cross-aspects (planet×planet including ASC/MC), bidirectional house overlay (person1's planets in person2's houses and vice versa), and composite chart using midpoint method. Exports `midpoint()` and `calculateSynastry()`.
@@ -56,7 +56,7 @@ Medical astrology features are in a separate private package: **celestia-medical
 
 ### Julian Day: ET vs UT
 - `swe.utc_to_jd()` returns two values: `data[0]` = JD in ET (Ephemeris Time), `data[1]` = JD in UT (Universal Time)
-- **Planet calculations** (`swe.calc_ut`) use **JD_ET**
+- **Planet calculations** (`swe.calc`) use **JD_ET**
 - **House calculations** (`swe.houses`) use **JD_UT**
 - Mixing these up produces wrong results — always use the correct one
 

@@ -114,7 +114,7 @@ export function calculateNatalChart({
   const calcFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_SPEED;
 
   const planets = CELESTIAL_BODIES.map(body => {
-    const result = swe.calc_ut(jd_et, body.id, calcFlags);
+    const result = swe.calc(jd_et, body.id, calcFlags);
 
     // Check result.flag — if it differs from the input flags, Moshier fallback may have occurred
     const usedMoshier = (result.flag & swe.constants.SEFLG_SWIEPH) === 0;

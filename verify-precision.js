@@ -56,7 +56,7 @@ const PLANET_IDS = [
 ];
 
 for (const p of PLANET_IDS) {
-  const result = swe.calc_ut(jd1_ET, p.id, calcFlags);
+  const result = swe.calc(jd1_ET, p.id, calcFlags);
   rawPlanets1[p.name] = {
     longitude: result.data[0],
     latitude: result.data[1],
@@ -212,7 +212,7 @@ check('New York 1985: Sun in Pisces (13-14° range)', () => {
 check('New York 1985: planets match raw sweph', () => {
   // UTC = 14:15:00
   const jd = swe.utc_to_jd(1985, 3, 4, 14, 15, 0, swe.constants.SE_GREG_CAL);
-  const rawSun = swe.calc_ut(jd.data[0], 0, calcFlags);
+  const rawSun = swe.calc(jd.data[0], 0, calcFlags);
 
   const chart = calculateNatalChart({
     year: 1985, month: 3, day: 4, hour: 9, minute: 15,
@@ -239,7 +239,7 @@ check('Istanbul 1990 DST: Moon matches raw sweph', () => {
 
   // calestia stores julianDayET, use that for raw comparison
   const jdET = chart.meta.julianDayET;
-  const rawMoon = swe.calc_ut(jdET, 1, calcFlags);
+  const rawMoon = swe.calc(jdET, 1, calcFlags);
   const calMoon = chart.planets.find(p => p.name === 'Moon');
   const diff = Math.abs(calMoon.longitude - rawMoon.data[0]);
   assert(diff < 0.000001, `Moon diff: ${diff}°`);

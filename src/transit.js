@@ -43,7 +43,7 @@ const MOON_PHASE_TR = {
  */
 export function getPlanetPositionsAtJD(jd_et) {
   const planets = CELESTIAL_BODIES.map(body => {
-    const result = swe.calc_ut(jd_et, body.id, calcFlags);
+    const result = swe.calc(jd_et, body.id, calcFlags);
     return {
       id: body.id,
       name: body.name,
@@ -135,10 +135,10 @@ export function refineExactTime(transitPlanetId, natalLongitude, aspectAngle, ap
     let lon;
     if (transitPlanetId === -1) {
       // South Node: True Node + 180°
-      const result = swe.calc_ut(jd, 11, calcFlags); // True Node id = 11
+      const result = swe.calc(jd, 11, calcFlags); // True Node id = 11
       lon = (result.data[0] + 180) % 360;
     } else {
-      const result = swe.calc_ut(jd, transitPlanetId, calcFlags);
+      const result = swe.calc(jd, transitPlanetId, calcFlags);
       lon = result.data[0];
     }
     let diff = Math.abs(lon - natalLongitude);
@@ -182,8 +182,8 @@ export function calculateRetrogrades(transitPlanets) {
  * Calculate lunar metrics: sign, phase, illumination, perigee/apogee.
  */
 export function calculateLunarMetrics(jd_et) {
-  const moonResult = swe.calc_ut(jd_et, 1, calcFlags); // Moon
-  const sunResult = swe.calc_ut(jd_et, 0, calcFlags);   // Sun
+  const moonResult = swe.calc(jd_et, 1, calcFlags); // Moon
+  const sunResult = swe.calc(jd_et, 0, calcFlags);   // Sun
 
   const moonLon = moonResult.data[0];
   const sunLon = sunResult.data[0];

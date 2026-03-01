@@ -12,20 +12,34 @@ export function longitudeToSign(longitude) {
   let lon = longitude % 360;
   if (lon < 0) lon += 360;
 
-  const signIndex = Math.floor(lon / 30);
+  let signIndex = Math.floor(lon / 30);
   const posInSign = lon % 30; // 0-30° range
 
-  const degree = Math.floor(posInSign);
+  let degree = Math.floor(posInSign);
   const fractional = (posInSign - degree) * 60;
-  const minute = Math.floor(fractional);
-  const second = Math.round((fractional - minute) * 60);
+  let minute = Math.floor(fractional);
+  let second = Math.round((fractional - minute) * 60);
+
+  // Proper carry-over: second → minute → degree → sign
+  if (second >= 60) {
+    second = 0;
+    minute++;
+  }
+  if (minute >= 60) {
+    minute = 0;
+    degree++;
+  }
+  if (degree >= 30) {
+    degree = 0;
+    signIndex = (signIndex + 1) % 12;
+  }
 
   return {
     sign: SIGNS[signIndex],
     signIndex,
     degree,
     minute,
-    second: second >= 60 ? 59 : second, // Prevent rounding overflow
+    second,
   };
 }
 
