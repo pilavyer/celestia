@@ -116,7 +116,7 @@ curl -X POST http://localhost:3000/api/natal-chart \
   "meta": {
     "julianDayET": 2448090.97916667,
     "engine": "sweph (Swiss Ephemeris Node.js binding)",
-    "version": "3.0.0"
+    "version": "3.1.0"
   }
 }
 ```
@@ -297,7 +297,7 @@ List all supported house systems with descriptions.
 Health check.
 
 ```json
-{ "status": "ok", "engine": "celestia", "version": "3.0.0" }
+{ "status": "ok", "engine": "celestia", "version": "3.1.0" }
 ```
 
 ## Project Structure
