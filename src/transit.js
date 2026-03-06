@@ -2,7 +2,7 @@
 import * as swe from 'sweph';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { CELESTIAL_BODIES, ASPECTS } from './constants.js';
+import { CELESTIAL_BODIES, ASPECTS, SIGNS, SIGNS_TR } from './constants.js';
 import { calculateNatalChart } from './calculator.js';
 import { calculateCrossAspects } from './aspects.js';
 import { longitudeToSign, determineMoonPhase, roundTo } from './utils.js';
@@ -224,6 +224,237 @@ export function calculateLunarMetrics(jd_et) {
     isSuperMoon,
     withinPerigee,
     withinApogee,
+  };
+}
+
+// ========== INGRESS DETECTION ==========
+
+/**
+ * Detect planet sign changes during a JD range.
+ * Uses binary search for exact ingress moment (~8.6 second precision).
+ *
+ * @param {number} startJD - Start Julian Day (ET)
+ * @param {number} endJD - End Julian Day (ET)
+ * @returns {Array} Ingress events
+ */
+export function calculateIngresses(startJD, endJD) {
+  const ingresses = [];
+
+  // All planets including Moon (Moon changes sign ~every 2.5 days)
+  const ingressBodies = CELESTIAL_BODIES.filter(b => !['Lilith'].includes(b.name));
+
+  // Step sizes: Moon needs 0.5 day, fast planets 1 day, slow planets 2 days
+  const getStepSize = (name) => {
+    if (name === 'Moon') return 0.5;
+    if (['Sun', 'Mercury', 'Venus', 'Mars'].includes(name)) return 1.0;
+    return 2.0;
+  };
+
+  for (const body of ingressBodies) {
+    const step = getStepSize(body.name);
+    const bodyId = body.id;
+
+    // Get initial sign
+    let prevResult = swe.calc(startJD, bodyId, calcFlags);
+    let prevLon = prevResult.data[0];
+    let prevSignIndex = Math.floor(prevLon / 30) % 12;
+
+    for (let jd = startJD + step; jd <= endJD; jd += step) {
+      const result = swe.calc(jd, bodyId, calcFlags);
+      const curLon = result.data[0];
+      const curSignIndex = Math.floor(curLon / 30) % 12;
+
+      if (curSignIndex !== prevSignIndex) {
+        // Sign change detected — binary search for exact moment
+        let a = jd - step;
+        let b = jd;
+        const tolerance = 0.0001; // ~8.6 seconds
+
+        for (let i = 0; i < 30; i++) {
+          if (Math.abs(b - a) < tolerance) break;
+          const mid = (a + b) / 2;
+          const midResult = swe.calc(mid, bodyId, calcFlags);
+          const midSign = Math.floor(midResult.data[0] / 30) % 12;
+
+          if (midSign === prevSignIndex) {
+            a = mid;
+          } else {
+            b = mid;
+          }
+        }
+
+        const exactJD = (a + b) / 2;
+
+        // Handle True Node special case (South Node is opposite)
+        if (body.name === 'True Node') {
+          // True Node moves retrograde, so fromSign and toSign swap naturally
+          ingresses.push({
+            planet: body.name,
+            planetTr: body.trName,
+            fromSign: SIGNS[prevSignIndex],
+            fromSignTr: SIGNS_TR[prevSignIndex],
+            toSign: SIGNS[curSignIndex],
+            toSignTr: SIGNS_TR[curSignIndex],
+            exactTime: jdToISO(exactJD),
+            exactJD: roundTo(exactJD, 6),
+          });
+
+          // Also add South Node ingress (opposite signs)
+          const snPrevSign = (prevSignIndex + 6) % 12;
+          const snCurSign = (curSignIndex + 6) % 12;
+          ingresses.push({
+            planet: 'South Node',
+            planetTr: 'Güney Ay Düğümü',
+            fromSign: SIGNS[snPrevSign],
+            fromSignTr: SIGNS_TR[snPrevSign],
+            toSign: SIGNS[snCurSign],
+            toSignTr: SIGNS_TR[snCurSign],
+            exactTime: jdToISO(exactJD),
+            exactJD: roundTo(exactJD, 6),
+          });
+        } else {
+          ingresses.push({
+            planet: body.name,
+            planetTr: body.trName,
+            fromSign: SIGNS[prevSignIndex],
+            fromSignTr: SIGNS_TR[prevSignIndex],
+            toSign: SIGNS[curSignIndex],
+            toSignTr: SIGNS_TR[curSignIndex],
+            exactTime: jdToISO(exactJD),
+            exactJD: roundTo(exactJD, 6),
+          });
+        }
+      }
+
+      prevLon = curLon;
+      prevSignIndex = curSignIndex;
+    }
+  }
+
+  // Sort by time
+  ingresses.sort((a, b) => a.exactJD - b.exactJD);
+
+  return ingresses;
+}
+
+// ========== VOID OF COURSE MOON ==========
+
+/**
+ * Calculate Void of Course Moon status at a given JD.
+ *
+ * VoC = Moon makes no major Ptolemaic aspects before leaving its current sign.
+ * We scan forward from the given JD to the next Moon sign change,
+ * checking for aspects to all planets.
+ *
+ * @param {number} jd_et - Julian Day (ET) to check
+ * @returns {object} VoC data
+ */
+export function calculateVoidOfCourseMoon(jd_et) {
+  // Get current Moon position and sign
+  const moonResult = swe.calc(jd_et, 1, calcFlags);
+  const moonLon = moonResult.data[0];
+  const currentSignIndex = Math.floor(moonLon / 30) % 12;
+
+  // Step 1: Find next Moon ingress (when Moon changes sign)
+  const step = 0.04; // ~1 hour
+  let nextIngressJD = null;
+
+  for (let jd = jd_et + step; jd < jd_et + 3.0; jd += step) {
+    const result = swe.calc(jd, 1, calcFlags);
+    const signIdx = Math.floor(result.data[0] / 30) % 12;
+
+    if (signIdx !== currentSignIndex) {
+      // Binary search for exact moment
+      let a = jd - step;
+      let b = jd;
+      for (let i = 0; i < 25; i++) {
+        if (Math.abs(b - a) < 0.0001) break;
+        const mid = (a + b) / 2;
+        const midResult = swe.calc(mid, 1, calcFlags);
+        if (Math.floor(midResult.data[0] / 30) % 12 === currentSignIndex) {
+          a = mid;
+        } else {
+          b = mid;
+        }
+      }
+      nextIngressJD = (a + b) / 2;
+      break;
+    }
+  }
+
+  if (!nextIngressJD) {
+    // Fallback: couldn't find ingress in 3 days (shouldn't happen)
+    return {
+      isVoidOfCourse: false,
+      vocStartTime: null,
+      vocEndTime: null,
+      lastAspect: null,
+      nextIngress: null,
+    };
+  }
+
+  const nextSignIndex = (currentSignIndex + 1) % 12;
+
+  // Step 2: Scan from current time to ingress for Moon aspects to planets
+  // Major Ptolemaic aspects only: conjunction, opposition, trine, square, sextile
+  const majorAspects = ASPECTS.filter(a => ['Conjunction', 'Opposition', 'Trine', 'Square', 'Sextile'].includes(a.name));
+  const aspectPlanets = CELESTIAL_BODIES.filter(b => b.name !== 'Moon' && b.name !== 'Lilith');
+
+  let lastAspectJD = null;
+  let lastAspectInfo = null;
+  const scanStep = 0.02; // ~30 minutes
+
+  for (let jd = jd_et; jd < nextIngressJD; jd += scanStep) {
+    const moonPos = swe.calc(jd, 1, calcFlags);
+    const mLon = moonPos.data[0];
+
+    for (const planet of aspectPlanets) {
+      const planetPos = swe.calc(jd, planet.id, calcFlags);
+      const pLon = planetPos.data[0];
+
+      let diff = Math.abs(mLon - pLon);
+      if (diff > 180) diff = 360 - diff;
+
+      for (const aspect of majorAspects) {
+        // Use tight transit orbs (1°)
+        const deviation = Math.abs(diff - aspect.angle);
+        if (deviation <= 1.0) {
+          if (!lastAspectJD || jd > lastAspectJD) {
+            lastAspectJD = jd;
+            lastAspectInfo = {
+              planet: planet.name,
+              planetTr: planet.trName || planet.name,
+              type: aspect.name,
+              typeTr: aspect.trName,
+              symbol: aspect.symbol,
+            };
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // VoC starts after the last aspect and ends at the next ingress
+  const isVoidOfCourse = lastAspectJD ? (lastAspectJD < nextIngressJD && jd_et >= lastAspectJD) : true;
+  const vocStartTime = lastAspectJD ? jdToISO(lastAspectJD) : jdToISO(jd_et);
+  const vocEndTime = jdToISO(nextIngressJD);
+
+  // If Moon hasn't formed its last aspect yet (last aspect is in the future), we're not VoC
+  const isCurrentlyVoC = lastAspectJD
+    ? (jd_et > lastAspectJD)
+    : true; // no aspects found at all = VoC from start
+
+  return {
+    isVoidOfCourse: isCurrentlyVoC,
+    vocStartTime: lastAspectJD ? jdToISO(lastAspectJD) : null,
+    vocEndTime,
+    lastAspect: lastAspectInfo,
+    nextIngress: {
+      sign: SIGNS[nextSignIndex],
+      signTr: SIGNS_TR[nextSignIndex],
+      time: vocEndTime,
+    },
   };
 }
 
@@ -488,10 +719,23 @@ export function calculateTransits(natalParams, options = {}) {
     }))
     .sort((a, b) => (a.exactTime || '').localeCompare(b.exactTime || ''));
 
-  // 9. Lunar metrics and retrogrades
+  // 9. Lunar metrics, retrogrades, ingresses, VoC Moon
   const currentTransitPlanets = getPlanetPositionsAtJD(todayJD);
   const lunar = calculateLunarMetrics(todayJD);
   const retrogrades = calculateRetrogrades(currentTransitPlanets);
+
+  // Ingress detection: planet sign changes during the scan period
+  const ingresses = calculateIngresses(startJD, endJD);
+
+  // Void of Course Moon (current status)
+  const vocMoon = calculateVoidOfCourseMoon(todayJD);
+
+  // Merge VoC data into lunar object
+  lunar.isVoidOfCourse = vocMoon.isVoidOfCourse;
+  lunar.vocStartTime = vocMoon.vocStartTime;
+  lunar.vocEndTime = vocMoon.vocEndTime;
+  lunar.lastAspect = vocMoon.lastAspect;
+  lunar.nextIngress = vocMoon.nextIngress;
 
   // Moon phase for top-level
   const moonPhase = lunar.moonPhase;
@@ -534,6 +778,7 @@ export function calculateTransits(natalParams, options = {}) {
     weeklyWithTiming,
     importantTransits,
     allEvents: allEventsClean,
+    ingresses,
     lunar,
     fetchedAt: new Date().toISOString(),
     meta: {

@@ -1,7 +1,7 @@
 {
   "name": "celestia",
-  "version": "3.1.0",
-  "description": "High-precision astrology calculation engine — natal charts, synastry, composite charts, and transits powered by Swiss Ephemeris",
+  "version": "4.0.0",
+  "description": "High-precision astrology calculation engine — natal charts, synastry, transits, eclipses, astrocartography, and more powered by Swiss Ephemeris",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -18,7 +18,11 @@
     "synastry",
     "transit",
     "composite-chart",
-    "lunar"
+    "lunar",
+    "eclipses",
+    "astrocartography",
+    "relocation",
+    "davison"
   ],
   "repository": {
     "type": "git",

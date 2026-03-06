@@ -1,4 +1,5 @@
 // src/synastry.js
+import * as swe from 'sweph';
 import { calculateNatalChart } from './calculator.js';
 import { calculateAspects, calculateCrossAspects } from './aspects.js';
 import {
@@ -86,6 +87,12 @@ export function calculateSynastry(person1Data, person2Data) {
   // ========== COMPOSITE CHART ==========
   const composite = calculateComposite(chart1, chart2);
 
+  // ========== DAVISON RELATIONSHIP CHART ==========
+  const davison = calculateDavison(chart1, chart2, person1Data, person2Data);
+
+  // ========== COMPATIBILITY SCORE ==========
+  const score = calculateCompatibilityScore(crossAspects);
+
   // ========== RESULT ==========
   return {
     person1: {
@@ -108,8 +115,10 @@ export function calculateSynastry(person1Data, person2Data) {
         person1InPerson2Houses,
         person2InPerson1Houses,
       },
+      score,
     },
     composite,
+    davison,
   };
 }
 
@@ -229,4 +238,145 @@ function calculateComposite(chart1, chart2) {
       modalities: modalityDist,
     },
   };
+}
+
+/**
+ * Calculate Davison Relationship Chart.
+ * Uses the arithmetic midpoint in time (JD average) and space (coordinate average)
+ * to create a real natal chart representing the relationship itself.
+ *
+ * Unlike the composite chart (mathematical midpoints of planet longitudes),
+ * the Davison chart is a real astronomical chart calculated at the midpoint moment.
+ */
+function calculateDavison(chart1, chart2, person1Data, person2Data) {
+  // Midpoint Julian Day (use JD_UT for date reconstruction)
+  const midJD_UT = (chart1.meta.julianDayUT + chart2.meta.julianDayUT) / 2;
+
+  // Midpoint coordinates
+  const midLat = (person1Data.latitude + person2Data.latitude) / 2;
+  const midLon = (person1Data.longitude + person2Data.longitude) / 2;
+
+  // Convert midpoint JD back to calendar date (UTC)
+  const rev = swe.revjul(midJD_UT, swe.constants.SE_GREG_CAL);
+  const year = rev.year;
+  const month = rev.month;
+  const day = rev.day;
+  const hour = Math.floor(rev.hour);
+  const minute = Math.round((rev.hour - hour) * 60);
+
+  // Calculate full natal chart at the midpoint
+  const davisonChart = calculateNatalChart({
+    year,
+    month,
+    day,
+    hour,
+    minute: Math.min(minute, 59), // safety clamp
+    latitude: midLat,
+    longitude: midLon,
+    timezone: 'UTC',
+    houseSystem: person1Data.houseSystem || 'P',
+  });
+
+  // Format midpoint date as ISO string
+  const midpointDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(Math.min(minute, 59)).padStart(2, '0')}:00.000Z`;
+
+  return {
+    midpointDate,
+    midpointJD: roundTo(midJD_UT, 8),
+    midpointLocation: {
+      latitude: roundTo(midLat, 4),
+      longitude: roundTo(midLon, 4),
+    },
+    planets: davisonChart.planets,
+    houses: davisonChart.houses,
+    aspects: davisonChart.aspects,
+    analysis: davisonChart.analysis,
+  };
+}
+
+/**
+ * Calculate synastry compatibility score from cross-aspects.
+ *
+ * Scoring methodology:
+ * - Each cross-aspect contributes weighted points based on aspect type, planet importance, and tightness
+ * - Harmonious aspects (conjunction, trine, sextile, semi-sextile) add positive points
+ * - Challenging aspects (square, opposition, quincunx) add negative points
+ * - Final score: ratio of positive to total absolute points, mapped to 0-100
+ */
+function calculateCompatibilityScore(crossAspects) {
+  // Aspect type weights (positive = harmonious, negative = challenging)
+  const ASPECT_WEIGHTS = {
+    'Conjunction':  10,
+    'Trine':         8,
+    'Sextile':       6,
+    'Semi-sextile':  2,
+    'Square':       -4,
+    'Opposition':   -6,
+    'Quincunx':     -2,
+  };
+
+  // Planet importance coefficients (Sun/Moon/Venus/Mars = high, outer = lower)
+  const PLANET_IMPORTANCE = {
+    'Sun': 10, 'Moon': 10, 'Venus': 9, 'Mars': 8,
+    'Ascendant': 8, 'Jupiter': 7, 'Mercury': 6, 'Saturn': 6,
+    'Midheaven': 6, 'Uranus': 4, 'Neptune': 4, 'Pluto': 4,
+    'Chiron': 3, 'True Node': 3, 'Lilith': 2, 'South Node': 2,
+  };
+
+  let totalPositive = 0;
+  let totalNegative = 0;
+  const details = [];
+
+  for (const aspect of crossAspects) {
+    const weight = ASPECT_WEIGHTS[aspect.type];
+    if (weight === undefined) continue;
+
+    const imp1 = PLANET_IMPORTANCE[aspect.planet1] || 3;
+    const imp2 = PLANET_IMPORTANCE[aspect.planet2] || 3;
+    const planetFactor = (imp1 + imp2) / 20; // ~0.3-1.0 range
+    const strengthFactor = aspect.strength / 100; // 0-1 based on orb tightness
+
+    const points = Math.abs(weight) * planetFactor * strengthFactor;
+    const isHarmonious = weight > 0;
+
+    if (isHarmonious) {
+      totalPositive += points;
+    } else {
+      totalNegative += points;
+    }
+
+    details.push({
+      planet1: aspect.planet1,
+      planet2: aspect.planet2,
+      type: aspect.type,
+      points: roundTo(isHarmonious ? points : -points, 2),
+      isHarmonious,
+    });
+  }
+
+  // Score = positive ratio * 100
+  const total = totalPositive + totalNegative;
+  const score = total > 0 ? Math.round((totalPositive / total) * 100) : 50;
+
+  // Score labels
+  const scoreLabel = getScoreLabel(score);
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    scoreTr: scoreLabel.tr,
+    scoreLabel: scoreLabel.en,
+    totalHarmony: roundTo(totalPositive, 2),
+    totalTension: roundTo(totalNegative, 2),
+    harmoniousCount: details.filter(d => d.isHarmonious).length,
+    challengingCount: details.filter(d => !d.isHarmonious).length,
+    topAspects: details.sort((a, b) => Math.abs(b.points) - Math.abs(a.points)).slice(0, 10),
+  };
+}
+
+function getScoreLabel(score) {
+  if (score >= 80) return { en: 'Excellent Harmony', tr: 'Mükemmel Uyum' };
+  if (score >= 65) return { en: 'Strong Harmony', tr: 'Güçlü Uyum' };
+  if (score >= 50) return { en: 'Balanced', tr: 'Dengeli' };
+  if (score >= 35) return { en: 'Challenging', tr: 'Zorlu' };
+  return { en: 'Very Challenging', tr: 'Çok Zorlu' };
 }

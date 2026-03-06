@@ -1,16 +1,22 @@
 # Celestia
 
-High-precision astrology calculation engine powered by Swiss Ephemeris. Calculates natal charts, synastry (cross-aspects + composite), and planetary transits via a REST API.
+High-precision astrology calculation engine powered by Swiss Ephemeris. Calculates natal charts, synastry (cross-aspects + composite + Davison), transits (with ingresses + VoC Moon), eclipses, relocation charts, and astrocartography via a REST API.
 
 ## Features
 
-- **Natal Charts** — 13 celestial bodies (Sun through Pluto, Chiron, True Node, Lilith, South Node) with 0.001 arcsec precision
-- **Synastry** — Cross-aspects, house overlays, and composite chart (midpoint method)
-- **Transits** — Planetary transits against natal chart with exact timing, event windows, and strength scoring
+- **Natal Charts** — 13+ celestial bodies (Sun through Pluto, Chiron, True/Mean Node, Mean/Osculating Lilith, South Node) with 0.001 arcsec precision
+- **Synastry** — Cross-aspects, house overlays, composite chart, Davison relationship chart, compatibility score (0-100)
+- **Transits** — Planetary transits against natal chart with exact timing, event windows, strength scoring, ingresses, and Void of Course Moon
+- **Eclipses** — Solar/lunar eclipse search by year or date range, NASA-verified, with optional natal aspects
+- **Relocation** — Same birth time recalculated for a different location (new houses/ASC/MC)
+- **Astrocartography** — Planetary lines (ASC/DSC/MC/IC) across world coordinates in GeoJSON format
 - **Lunar Metrics** — Moon phase, illumination, moon day, supermoon/perigee/apogee detection
 - **8 House Systems** — Placidus, Koch, Whole Sign, Equal, Alcabitius, Regiomontanus, Porphyry, Campanus
 - **7 Aspect Types** — Conjunction, Opposition, Trine, Square, Sextile, Quincunx, Semi-sextile with applying/separating detection
-- **Planetary Dignities** — Domicile, exaltation, detriment, fall
+- **Planetary Dignities** — Domicile, exaltation, detriment, fall + detailed terms, faces, triplicity, dignity score
+- **Sect Analysis** — Day/night chart, hayz/halb conditions, sect luminary
+- **Lunar Mansions** — 28 Arabic mansions with Turkish names
+- **Planetary Hours** — Chaldean planetary hour calculation
 - **IANA Timezone Support** — Historical DST handling via Luxon
 - **Bilingual Output** — English + Turkish labels on all entities
 - **Chart Analysis** — Moon phase, Part of Fortune, element/modality distribution, hemisphere emphasis, stellium detection, chart ruler, house rulers
@@ -28,7 +34,7 @@ cd celestia
 npm install
 npm start        # http://localhost:3000
 npm run dev      # auto-reload with nodemon
-npm test         # run test suite (13 tests)
+npm test         # run test suite (39 tests)
 ```
 
 > **Medical Astrology** features (planetary strength, fixed stars, progressions, midpoints, etc.) are in a separate private package: [`calestia-medical`](https://github.com/pilavyer/calestia-medical).
@@ -52,6 +58,8 @@ Calculate a full natal chart.
 | `longitude` | number | Yes | Birth longitude (east positive, west negative) |
 | `timezone` | string | Yes | IANA timezone ID (e.g. `"Europe/Istanbul"`) |
 | `houseSystem` | string | No | House system code, default `"P"` (Placidus) |
+| `nodeType` | string | No | `"true"` (default) or `"mean"` — True Node vs Mean Node |
+| `lilithType` | string | No | `"mean"` (default) or `"osculating"` — Mean Lilith vs Osculating Lilith |
 
 ```bash
 curl -X POST http://localhost:3000/api/natal-chart \
@@ -64,7 +72,7 @@ curl -X POST http://localhost:3000/api/natal-chart \
   }'
 ```
 
-**Response:** Planet positions (sign, degree, house, dignity, retrograde), house cusps, aspects with strength, moon phase, Part of Fortune, element/modality distribution, hemisphere emphasis, stelliums, metadata.
+**Response:** Planet positions (sign, degree, house, dignity, dignityDetail, decan, retrograde), house cusps, aspects with strength, analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, sect, lunar mansion, planetary hour, chart ruler, house rulers), metadata.
 
 <details>
 <summary>Example response (abbreviated)</summary>
@@ -85,6 +93,12 @@ curl -X POST http://localhost:3000/api/natal-chart \
       "longitude": 112.726913, "sign": "Cancer",
       "degree": 22, "minute": 43, "second": 37,
       "isRetrograde": false, "dignity": "peregrine", "house": 9,
+      "decan": 3, "decanRuler": "Moon",
+      "dignityDetail": {
+        "domicile": false, "exaltation": false, "detriment": false, "fall": false,
+        "peregrine": true, "termRuler": "Jupiter", "faceRuler": "Moon",
+        "essentialScore": -5
+      },
       "formattedPosition": "22°43'37\" Cancer"
     }
   ],
@@ -111,12 +125,21 @@ curl -X POST http://localhost:3000/api/natal-chart \
     "partOfFortune": { "sign": "Leo", "degree": 5, "minute": 17 },
     "elements": { "Fire": 1, "Earth": 3, "Air": 1, "Water": 5, "dominant": "Water" },
     "modalities": { "Cardinal": 5, "Fixed": 2, "Mutable": 3, "dominant": "Cardinal" },
-    "stelliums": [{ "sign": "Capricorn", "planets": ["Saturn","Uranus","Neptune"], "count": 3 }]
+    "stelliums": [{ "sign": "Capricorn", "planets": ["Saturn","Uranus","Neptune"], "count": 3 }],
+    "sect": {
+      "chartSect": "Gündüz Haritası",
+      "luminary": "Güneş",
+      "planets": [{ "name": "Sun", "condition": "Kısmi Hayz", "inSect": true }]
+    },
+    "lunarMansion": { "number": 2, "name": "Al-Butain", "trName": "Küçük Karın" },
+    "planetaryHour": { "planet": "Sun", "planetTr": "Güneş", "hourNumber": 8, "isDay": true },
+    "chartRuler": { "planet": "Pluto", "sign": "Scorpio", "house": 1 },
+    "houseRulers": [{ "house": 1, "cuspSign": "Scorpio", "ruler": "Pluto", "rulerHouse": 1 }]
   },
   "meta": {
     "julianDayET": 2448090.97916667,
     "engine": "sweph (Swiss Ephemeris Node.js binding)",
-    "version": "3.1.0"
+    "version": "4.0.0"
   }
 }
 ```
@@ -126,7 +149,7 @@ curl -X POST http://localhost:3000/api/natal-chart \
 
 ### `POST /api/synastry`
 
-Calculate synastry between two people: individual natal charts, cross-aspects, house overlays, and composite chart.
+Calculate synastry between two people: individual natal charts, cross-aspects, house overlays, composite chart, Davison relationship chart, and compatibility score.
 
 **Request body:**
 
@@ -139,56 +162,37 @@ Calculate synastry between two people: individual natal charts, cross-aspects, h
 
 Each person object has the same fields as the natal-chart endpoint.
 
-**Response:** Both natal charts (`person1`, `person2`), `synastry` (cross-aspects, house overlay in both directions), `composite` (midpoint planets, houses, aspects, element/modality analysis).
+**Response:** Both natal charts (`person1`, `person2`), `synastry` (cross-aspects with `score` 0-100, house overlay in both directions), `composite` (midpoint planets, houses, aspects, analysis), `davison` (midpoint-in-time relationship chart with full natal structure).
 
 <details>
 <summary>Example response (abbreviated)</summary>
 
 ```json
 {
-  "person1": {
-    "input": { "localTime": "1998-11-25T10:17", "timezone": "Europe/Istanbul" },
-    "planets": [ { "name": "Sun", "sign": "Sagittarius", "house": 10 } ],
-    "houses": { "system": "P", "ascendant": { "sign": "Capricorn" } },
-    "aspects": [],
-    "analysis": { "sunSign": "Sagittarius", "moonSign": "Leo" }
-  },
-  "person2": {
-    "input": { "localTime": "2000-03-15T14:30", "timezone": "Europe/Istanbul" },
-    "planets": [ { "name": "Sun", "sign": "Pisces", "house": 8 } ],
-    "houses": { "system": "P", "ascendant": { "sign": "Leo" } },
-    "aspects": [],
-    "analysis": { "sunSign": "Pisces", "moonSign": "Capricorn" }
-  },
+  "person1": { "planets": [], "houses": {}, "aspects": [], "analysis": {} },
+  "person2": { "planets": [], "houses": {}, "aspects": [], "analysis": {} },
   "synastry": {
     "crossAspects": [
-      {
-        "planet1": "Sun", "planet2": "Mercury",
-        "type": "Square", "symbol": "□",
-        "orb": 0.05, "strength": 99, "isApplying": false
-      }
+      { "planet1": "Sun", "planet2": "Mercury", "type": "Square", "orb": 0.05, "strength": 99 }
     ],
     "houseOverlay": {
-      "person1InPerson2Houses": [
-        { "planet": "Sun", "sign": "Sagittarius", "house": 4 }
-      ],
-      "person2InPerson1Houses": [
-        { "planet": "Sun", "sign": "Pisces", "house": 2 }
-      ]
+      "person1InPerson2Houses": [{ "planet": "Sun", "sign": "Sagittarius", "house": 4 }],
+      "person2InPerson1Houses": [{ "planet": "Sun", "sign": "Pisces", "house": 2 }]
+    },
+    "score": {
+      "score": 63, "scoreLabel": "Balanced", "scoreTr": "Dengeli",
+      "harmony": 91.14, "tension": 52.61
     }
   },
   "composite": {
-    "planets": [
-      { "name": "Sun", "sign": "Aquarius", "longitude": 299.04, "house": 1 }
-    ],
-    "houses": {
-      "ascendant": { "sign": "Scorpio" },
-      "midheaven": { "sign": "Virgo" }
-    },
-    "aspects": [],
-    "analysis": {
-      "elements": { "Fire": 2, "Earth": 3, "Air": 2, "Water": 3, "dominant": "Earth" }
-    }
+    "planets": [{ "name": "Sun", "sign": "Aquarius", "longitude": 299.04 }],
+    "houses": { "ascendant": { "sign": "Scorpio" } },
+    "aspects": []
+  },
+  "davison": {
+    "midpointDate": "1999-07-21T10:24:00.000Z",
+    "midpointLocation": { "latitude": 40.6038, "longitude": 34.5921 },
+    "planets": [], "houses": {}, "aspects": [], "analysis": {}
   }
 }
 ```
@@ -220,7 +224,7 @@ curl -X POST http://localhost:3000/api/transits \
   }'
 ```
 
-**Response:** `allTransits` (deduplicated), `todayTransits`, `weekTransits`, `weeklyWithTiming`, `importantTransits` (top N by strength), `allEvents` (full event list with start/exact/end times), `lunar` (moon metrics), `retrogrades`, metadata.
+**Response:** `allTransits`, `todayTransits`, `weekTransits`, `weeklyWithTiming`, `importantTransits` (top N by strength), `allEvents` (full event list with start/exact/end times), `lunar` (moon metrics + VoC data), `retrogrades`, `ingresses` (planet sign changes), metadata.
 
 <details>
 <summary>Example response (abbreviated)</summary>
@@ -228,46 +232,125 @@ curl -X POST http://localhost:3000/api/transits \
 ```json
 {
   "success": true,
-  "monthStartDate": "12-2-2026",
-  "monthEndDate": "14-3-2026",
   "periodDays": 30,
   "ascendant": "Capricorn",
-  "moonPhase": "Waning Crescent",
-  "retrogrades": [
-    { "planet": "Mars", "planetTr": "Mars", "sign": "Cancer" }
-  ],
   "allTransits": [
-    {
-      "transitPlanet": "Sun", "transitPlanetTr": "Güneş",
-      "natalPlanet": "Mars", "natalPlanetTr": "Mars",
-      "type": "Quincunx", "symbol": "⚻",
-      "orb": 0.0, "maxOrb": 1.56, "strength": 100
-    }
+    { "transitPlanet": "Sun", "natalPlanet": "Mars", "type": "Quincunx", "orb": 0.0, "strength": 100 }
   ],
-  "importantTransits": [
+  "ingresses": [
     {
-      "transitPlanet": "Mars", "natalPlanet": "Moon",
-      "type": "Conjunction", "symbol": "☌",
-      "orb": 0.001, "strength": 100,
-      "startTime": "2026-02-11T00:01:12.000Z",
-      "exactTime": "2026-02-11T00:01:12.000Z",
-      "endTime": "2026-02-15T00:01:09.000Z"
+      "planet": "Moon", "planetTr": "Ay",
+      "fromSign": "Leo", "toSign": "Virgo",
+      "exactTime": "2026-03-02T12:34:00.000Z"
+    },
+    {
+      "planet": "Mars", "planetTr": "Mars",
+      "fromSign": "Aquarius", "toSign": "Pisces",
+      "exactTime": "2026-03-02T14:16:00.000Z"
     }
   ],
   "lunar": {
-    "moonSign": "Capricorn", "moonSignTr": "Oğlak",
-    "moonPhase": "Waning Crescent", "moonPhaseTr": "Hilal (Küçülen)",
-    "moonIllumination": 13.5,
-    "moonDay": 27, "moonAgeInDays": 26,
-    "isSuperMoon": false
+    "moonSign": "Libra", "moonPhase": "Waning Gibbous",
+    "moonIllumination": 93.6, "moonDay": 18,
+    "isVoidOfCourse": false,
+    "vocStartTime": "2026-03-06T18:57:19.000Z",
+    "vocEndTime": "2026-03-07T04:02:39.000Z",
+    "lastAspect": { "planet": "Chiron", "type": "Opposition" },
+    "nextIngress": { "sign": "Scorpio", "time": "2026-03-07T04:02:39.000Z" }
   },
-  "meta": {
-    "engine": "Celestia (Swiss Ephemeris)",
-    "transitOrbScale": 0.5
-  }
+  "meta": { "engine": "Celestia (Swiss Ephemeris)", "transitOrbScale": 0.5 }
 }
 ```
 </details>
+
+---
+
+### `POST /api/eclipses`
+
+Search for solar and lunar eclipses by year or date range.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `year` | number | Either year or startDate+endDate | Year to search (1800-2400) |
+| `startDate` | string | Either year or startDate+endDate | Start date `"YYYY-MM-DD"` |
+| `endDate` | string | Either year or startDate+endDate | End date `"YYYY-MM-DD"` |
+| `natal` | object | No | Birth data for natal aspect calculation |
+
+```bash
+curl -X POST http://localhost:3000/api/eclipses \
+  -H "Content-Type: application/json" \
+  -d '{ "year": 2026 }'
+```
+
+**Response:** Array of eclipses with type, subtype, date, longitude, sign, degree, Saros series. If natal data provided, includes aspects to natal planets.
+
+<details>
+<summary>Example response (abbreviated)</summary>
+
+```json
+{
+  "eclipses": [
+    {
+      "type": "solar", "subType": "annular",
+      "date": "2026-02-17T12:00:00.000Z",
+      "longitude": 328.83, "sign": "Aquarius", "degree": 28,
+      "sarosSeriesEstimate": 121
+    },
+    {
+      "type": "lunar", "subType": "total",
+      "date": "2026-03-03T11:33:00.000Z",
+      "longitude": 162.84, "sign": "Virgo", "degree": 12,
+      "sarosSeriesEstimate": 112
+    }
+  ],
+  "meta": { "count": 4, "solar": 2, "lunar": 2 }
+}
+```
+</details>
+
+---
+
+### `POST /api/relocation`
+
+Calculate a relocation chart — same birth time, different location.
+
+**Request body:** Same natal fields as `/api/natal-chart`, plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `newLatitude` | number | Yes | New location latitude |
+| `newLongitude` | number | Yes | New location longitude |
+| `newHouseSystem` | string | No | House system for relocation (default: same as natal) |
+
+```bash
+curl -X POST http://localhost:3000/api/relocation \
+  -H "Content-Type: application/json" \
+  -d '{
+    "year": 1990, "month": 7, "day": 15, "hour": 14, "minute": 30,
+    "latitude": 41.01, "longitude": 28.97, "timezone": "Europe/Istanbul",
+    "newLatitude": 40.7128, "newLongitude": -74.0060
+  }'
+```
+
+**Response:** Full natal chart structure with recalculated houses/ASC/MC for the new location. Planet positions remain identical to the natal chart.
+
+---
+
+### `POST /api/astrocartography`
+
+Calculate planetary lines across the world map.
+
+**Request body:** Same natal fields as `/api/natal-chart`, plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `longitudeStep` | number | No | Longitude step in degrees (default 10) |
+| `planets` | array | No | Filter to specific planets (e.g. `["Sun", "Moon"]`) |
+| `lineTypes` | array | No | Filter to specific line types (e.g. `["MC", "ASC"]`) |
+
+**Response:** Planetary lines with GeoJSON-compatible coordinate arrays for MC, IC, ASC, and DSC lines per planet.
 
 ---
 
@@ -297,7 +380,7 @@ List all supported house systems with descriptions.
 Health check.
 
 ```json
-{ "status": "ok", "engine": "celestia", "version": "3.1.0" }
+{ "status": "ok", "engine": "celestia", "version": "4.0.0" }
 ```
 
 ## Project Structure
@@ -313,21 +396,26 @@ celestia/
 │   ├── semo_18.se1                    # Moon data (1800-2400 AD)
 │   └── sepl_18.se1                    # Planet data (1800-2400 AD)
 ├── src/
-│   ├── calculator.js   # Natal chart calculation engine
-│   ├── synastry.js     # Synastry: cross-aspects, house overlay, composite
-│   ├── transit.js      # Transit engine: scanning, exact timing, lunar metrics
-│   ├── aspects.js      # Aspect calculation (intra-chart + cross-chart)
-│   ├── dignities.js    # Planetary dignity table
-│   ├── timezone.js     # IANA timezone to UTC conversion (Luxon)
-│   ├── utils.js        # Longitude→sign, moon phase, Part of Fortune, etc.
-│   └── constants.js    # Celestial bodies, aspects, signs, house systems
-├── .editorconfig        # Editor settings (2-space indent, UTF-8, LF)
-├── .gitignore           # Git ignore rules
-├── CHANGELOG.md         # Version history
-├── CLAUDE.md            # AI developer guide
-├── LICENSE              # AGPL-3.0
-├── server.js            # Express REST API (5 endpoints)
-├── test.js              # Test suite (13 tests)
+│   ├── calculator.js       # Natal chart engine + relocation
+│   ├── synastry.js         # Synastry: cross-aspects, composite, Davison, score
+│   ├── transit.js          # Transits: scanning, timing, ingresses, VoC Moon
+│   ├── eclipses.js         # Solar/lunar eclipse search
+│   ├── astrocartography.js # Planetary lines across world coordinates
+│   ├── aspects.js          # Aspect calculation (intra-chart + cross-chart)
+│   ├── dignities.js        # Planetary dignity table + detailed terms/faces/triplicity
+│   ├── sect.js             # Day/night chart sect analysis
+│   ├── lunar-mansions.js   # 28 Arabic lunar mansions
+│   ├── planetary-hours.js  # Chaldean planetary hours
+│   ├── timezone.js         # IANA timezone to UTC conversion (Luxon)
+│   ├── utils.js            # Longitude→sign, moon phase, Part of Fortune, etc.
+│   └── constants.js        # Celestial bodies, aspects, signs, house systems, NODE_TYPES, LILITH_TYPES
+├── .editorconfig            # Editor settings (2-space indent, UTF-8, LF)
+├── .gitignore               # Git ignore rules
+├── CHANGELOG.md             # Version history
+├── CLAUDE.md                # AI developer guide
+├── LICENSE                  # AGPL-3.0
+├── server.js                # Express REST API (8 endpoints)
+├── test.js                  # Test suite (39 tests)
 └── package.json
 ```
 

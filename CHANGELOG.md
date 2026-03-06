@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-03-06
+
+### Added
+
+#### Phase 1 — Natal Chart Enrichment
+- **Essential Dignities Detail** (`dignityDetail`): terms, faces, triplicity rulers, and composite dignity score on every planet
+- **Decanate** (`decan`, `decanRuler`): 36-decan system with Chaldean rulers on every planet
+- **Sect Analysis** (`analysis.sect`): day/night chart detection, sect luminary, hayz/halb conditions for all planets
+- **Lunar Mansions** (`analysis.lunarMansion`): 28 Arabic mansions with Turkish names, element, ruling planet
+- **Planetary Hours** (`analysis.planetaryHour`): Chaldean hour calculation from sunrise/sunset, Turkish labels
+- **Chart Ruler** (`analysis.chartRuler`): ASC sign ruler with position and house
+- **House Rulers** (`analysis.houseRulers`): traditional sign ruler for each house cusp
+
+#### Phase 2 — Relationship Enrichment
+- **Davison Relationship Chart** (`davison`): midpoint-in-time chart added to synastry response
+- **Synastry Compatibility Score** (`synastry.score`): 0-100 weighted scoring with harmony/tension breakdown
+- **Relocation Chart**: `POST /api/relocation` endpoint — same birth time, different location houses
+- `calculateRelocationChart()` export from calculator.js
+
+#### Phase 4 — Predictive Enrichment
+- **Eclipse Calculation**: `POST /api/eclipses` endpoint — solar/lunar eclipse search by year or date range
+- `calculateEclipses()` with NASA-verified results (2024, 2026), Saros series estimation, optional natal aspects
+- **Ingress Detection** (`ingresses`): planet sign-change timestamps in transit response with binary search precision
+- **Void of Course Moon** (`lunar.isVoidOfCourse`, `vocStartTime`, `vocEndTime`, `lastAspect`, `nextIngress`): full VoC data in transit lunar section
+- `calculateIngresses()` and `calculateVoidOfCourseMoon()` exports from transit.js
+
+#### Phase 5 — Advanced Techniques
+- **Astrocartography**: `POST /api/astrocartography` endpoint — MC/IC/ASC/DSC planetary lines in GeoJSON-compatible format
+- `calculateAstrocartography()` export with configurable longitude step, planet filter, and line types
+- **Mean Node / Osculating Lilith**: `nodeType` ('true'|'mean') and `lilithType` ('mean'|'osculating') optional parameters in natal chart
+- `NODE_TYPES` and `LILITH_TYPES` constants
+
+### Changed
+- Test suite expanded: 13 → 39 tests (26 new tests covering all phases)
+- Verification suites: 23,396+ exhaustive checks, 52 precision checks — all passing
+- 8 API endpoints total (3 new: eclipses, relocation, astrocartography)
+
 ## [3.1.0] - 2026-03-01
 
 ### Fixed

@@ -3,10 +3,13 @@ import * as swe from 'sweph';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import { CELESTIAL_BODIES, SIGNS, HOUSE_SYSTEMS } from './constants.js';
+import { CELESTIAL_BODIES, SIGNS, HOUSE_SYSTEMS, NODE_TYPES, LILITH_TYPES } from './constants.js';
 import { birthTimeToUTC } from './timezone.js';
 import { calculateAspects } from './aspects.js';
-import { getDignity, getSignRuler } from './dignities.js';
+import { getDignity, getSignRuler, getDignityDetail, getFaceRuler } from './dignities.js';
+import { calculateSect } from './sect.js';
+import { getLunarMansion } from './lunar-mansions.js';
+import { calculatePlanetaryHour } from './planetary-hours.js';
 import {
   longitudeToSign,
   determineMoonPhase,
@@ -44,12 +47,16 @@ swe.set_ephe_path(ephePath);
  * @param {number} params.longitude - Birth place longitude (east positive, WEST NEGATIVE)
  * @param {string} params.timezone - IANA timezone (e.g., "Europe/Istanbul")
  * @param {string} [params.houseSystem='P'] - House system code (default: Placidus)
+ * @param {string} [params.nodeType='true'] - Node type: 'true' (default) or 'mean'
+ * @param {string} [params.lilithType='mean'] - Lilith type: 'mean' (default) or 'osculating'
  * @returns {object} Full natal chart data
  */
 export function calculateNatalChart({
   year, month, day, hour, minute,
   latitude, longitude, timezone,
-  houseSystem = 'P'
+  houseSystem = 'P',
+  nodeType = 'true',
+  lilithType = 'mean',
 }) {
   // ========== INPUT VALIDATION ==========
 
@@ -113,7 +120,21 @@ export function calculateNatalChart({
   // SEFLG_SPEED: Also return speed data (required for retrograde detection)
   const calcFlags = swe.constants.SEFLG_SWIEPH | swe.constants.SEFLG_SPEED;
 
-  const planets = CELESTIAL_BODIES.map(body => {
+  // Apply nodeType and lilithType overrides
+  const nodeConfig = NODE_TYPES[nodeType] || NODE_TYPES['true'];
+  const lilithConfig = LILITH_TYPES[lilithType] || LILITH_TYPES['mean'];
+
+  const effectiveBodies = CELESTIAL_BODIES.map(body => {
+    if (body.name === 'True Node') {
+      return { ...body, id: nodeConfig.id, name: nodeConfig.name, trName: nodeConfig.trName };
+    }
+    if (body.name === 'Lilith') {
+      return { ...body, id: lilithConfig.id, name: lilithConfig.name, trName: lilithConfig.trName };
+    }
+    return body;
+  });
+
+  const planets = effectiveBodies.map(body => {
     const result = swe.calc(jd_et, body.id, calcFlags);
 
     // Check result.flag — if it differs from the input flags, Moshier fallback may have occurred
@@ -133,6 +154,9 @@ export function calculateNatalChart({
 
     const signData = longitudeToSign(lon);
 
+    // Decan (face) data
+    const faceData = getFaceRuler(signData.sign, signData.degree);
+
     return {
       id: body.id,
       name: body.name,
@@ -148,17 +172,20 @@ export function calculateNatalChart({
       second: signData.second,
       isRetrograde: speedLon < 0,
       dignity: getDignity(body.name, signData.sign),
+      decan: faceData ? faceData.decan : null,
+      decanRuler: faceData ? faceData.ruler : null,
       formattedPosition: `${signData.degree}°${String(signData.minute).padStart(2, '0')}'${String(signData.second).padStart(2, '0')}" ${signData.sign}`,
       usedMoshierFallback: usedMoshier,
     };
   });
 
   // Calculate South Node (North Node + 180°)
-  const northNode = planets.find(p => p.name === 'True Node');
+  const northNode = planets.find(p => p.name === 'True Node' || p.name === 'Mean Node');
   if (northNode) {
     const southLon = (northNode.longitude + 180) % 360;
     const southSignData = longitudeToSign(southLon);
 
+    const southFaceData = getFaceRuler(southSignData.sign, southSignData.degree);
     planets.push({
       id: -1,
       name: 'South Node',
@@ -174,6 +201,8 @@ export function calculateNatalChart({
       second: southSignData.second,
       isRetrograde: northNode.isRetrograde,
       dignity: null,
+      decan: southFaceData ? southFaceData.decan : null,
+      decanRuler: southFaceData ? southFaceData.ruler : null,
       formattedPosition: `${southSignData.degree}°${String(southSignData.minute).padStart(2, '0')}'${String(southSignData.second).padStart(2, '0')}" ${southSignData.sign}`,
       usedMoshierFallback: false,
     });
@@ -236,9 +265,12 @@ export function calculateNatalChart({
 
   const planetsWithHouses = planets.map(planet => {
     const house = findPlanetInHouse(planet.longitude, cusps);
+    // Add detailed dignity info (essential dignities with score)
+    const dignityDetail = getDignityDetail(planet.name, planet.sign, planet.degree, isDayChart);
     return {
       ...planet,
       house,
+      dignityDetail,
     };
   });
 
@@ -274,6 +306,15 @@ export function calculateNatalChart({
 
   // Stellium detection (3+ planets in the same sign)
   const stelliums = findStelliums(planetsWithHouses);
+
+  // Sect analysis (day/night chart dynamics)
+  const sect = calculateSect(planetsWithHouses, isDayChart);
+
+  // Lunar Mansion (Moon's ecliptic longitude → 28 mansions)
+  const lunarMansion = moon ? getLunarMansion(moon.longitude) : null;
+
+  // Planetary Hour (birth time planetary hour)
+  const planetaryHour = calculatePlanetaryHour(jd_ut, latitude, longitude);
 
   // Chart ruler (ruler of the rising sign)
   const chartRulerName = getSignRuler(ascData.sign);
@@ -367,6 +408,9 @@ export function calculateNatalChart({
       stelliums,
       chartRuler,
       houseRulers,
+      sect,
+      lunarMansion,
+      planetaryHour,
     },
 
     meta: {
@@ -377,6 +421,187 @@ export function calculateNatalChart({
       ephemerisMode: planetsWithHouses.some(p => p.usedMoshierFallback) ? 'Moshier (fallback)' : 'Swiss Ephemeris',
       engine: 'sweph (Swiss Ephemeris Node.js binding)',
       version,
+      warnings,
+    },
+  };
+}
+
+/**
+ * Calculate a relocation chart.
+ * Same birth time (same JD) but different location — only houses, ASC, MC change.
+ * Planet positions remain identical to the natal chart.
+ *
+ * @param {object} natalChart - Full natal chart from calculateNatalChart()
+ * @param {number} newLatitude - New location latitude
+ * @param {number} newLongitude - New location longitude (east positive, west negative)
+ * @param {string} [newHouseSystem] - House system (defaults to natal chart's system)
+ * @returns {object} Relocation chart data
+ */
+export function calculateRelocationChart(natalChart, newLatitude, newLongitude, newHouseSystem) {
+  if (newLatitude < -90 || newLatitude > 90) {
+    throw new Error(`Invalid latitude: ${newLatitude}. Must be between -90 and 90.`);
+  }
+  if (newLongitude < -180 || newLongitude > 180) {
+    throw new Error(`Invalid longitude: ${newLongitude}. Must be between -180 and 180.`);
+  }
+
+  const houseSystem = newHouseSystem || natalChart.houses.system;
+  const jd_ut = natalChart.meta.julianDayUT;
+
+  // Recalculate houses at new location (same JD_UT)
+  const housesResult = swe.houses(jd_ut, newLatitude, newLongitude, houseSystem);
+  const rawHouses = housesResult.data.houses;
+  const points = housesResult.data.points;
+
+  const cusps = [0, ...rawHouses];
+  const ascendant = points[0];
+  const midheaven = points[1];
+  const vertex = points[3];
+
+  // Warnings for polar latitudes
+  const warnings = [];
+  if (['P', 'K'].includes(houseSystem) && Math.abs(newLatitude) > 66) {
+    warnings.push(
+      `${HOUSE_SYSTEMS[houseSystem].name} house system may be unreliable at ${Math.abs(newLatitude)}° latitude. ` +
+      `Whole Sign ("W") system is recommended for polar regions.`
+    );
+  }
+
+  // House cusps
+  const houses = [];
+  for (let i = 1; i <= 12; i++) {
+    const cuspData = longitudeToSign(cusps[i]);
+    houses.push({
+      house: i,
+      cusp: roundTo(cusps[i], 6),
+      sign: cuspData.sign,
+      degree: cuspData.degree,
+      minute: cuspData.minute,
+      formattedCusp: `${cuspData.degree}°${String(cuspData.minute).padStart(2, '0')}' ${cuspData.sign}`,
+    });
+  }
+
+  const ascData = longitudeToSign(ascendant);
+  const mcData = longitudeToSign(midheaven);
+  const vtxData = longitudeToSign(vertex);
+
+  // Day/night chart at new location
+  const sunPlanet = natalChart.planets.find(p => p.name === 'Sun');
+  const isDayChart = sunPlanet ? isAboveHorizon(sunPlanet.longitude, ascendant) : true;
+
+  // Reassign houses to planets at new location
+  const planetsWithHouses = natalChart.planets.map(planet => ({
+    ...planet,
+    house: findPlanetInHouse(planet.longitude, cusps),
+  }));
+
+  // Recalculate aspects (same planets, but include new ASC/MC)
+  const aspectBodies = [
+    ...planetsWithHouses,
+    { name: 'Ascendant', trName: 'Yükselen', longitude: ascendant, speed: 0 },
+    { name: 'Midheaven', trName: 'Gökyüzü Ortası', longitude: midheaven, speed: 0 },
+  ];
+  const aspects = calculateAspects(aspectBodies);
+
+  // Recalculate location-dependent analysis
+  const sun = planetsWithHouses.find(p => p.name === 'Sun');
+  const moon = planetsWithHouses.find(p => p.name === 'Moon');
+
+  const partOfFortune = calculatePartOfFortune(ascendant, sun?.longitude, moon?.longitude, isDayChart);
+  const pofData = longitudeToSign(partOfFortune);
+  const hemisphereEmphasis = determineHemisphereEmphasis(planetsWithHouses, ascendant, midheaven);
+  const stelliums = findStelliums(planetsWithHouses);
+
+  // Chart ruler at new location
+  const chartRulerName = getSignRuler(ascData.sign);
+  const chartRulerPlanet = planetsWithHouses.find(p => p.name === chartRulerName);
+  const chartRuler = chartRulerPlanet ? {
+    name: chartRulerPlanet.name,
+    trName: chartRulerPlanet.trName,
+    sign: chartRulerPlanet.sign,
+    house: chartRulerPlanet.house,
+    longitude: chartRulerPlanet.longitude,
+    isRetrograde: chartRulerPlanet.isRetrograde,
+    dignity: chartRulerPlanet.dignity,
+    formattedPosition: chartRulerPlanet.formattedPosition,
+  } : null;
+
+  // House rulers at new location
+  const houseRulers = houses.map(h => {
+    const rulerName = getSignRuler(h.sign);
+    const rulerPlanet = planetsWithHouses.find(p => p.name === rulerName);
+    return {
+      house: h.house,
+      cuspSign: h.sign,
+      rulingPlanet: rulerName,
+      rulingPlanetTr: rulerPlanet?.trName || null,
+      rulerSign: rulerPlanet?.sign || null,
+      rulerHouse: rulerPlanet?.house || null,
+      rulerLongitude: rulerPlanet?.longitude || null,
+      rulerIsRetrograde: rulerPlanet?.isRetrograde || false,
+      rulerDignity: rulerPlanet?.dignity || null,
+    };
+  });
+
+  // Sect at new location
+  const sect = calculateSect(planetsWithHouses, isDayChart);
+
+  return {
+    type: 'relocation',
+    typeTr: 'Relokasyon Haritası',
+    natalInput: natalChart.input,
+    relocationLocation: {
+      latitude: newLatitude,
+      longitude: newLongitude,
+    },
+    planets: planetsWithHouses,
+    houses: {
+      system: houseSystem,
+      systemName: HOUSE_SYSTEMS[houseSystem].name,
+      cusps: houses,
+      ascendant: {
+        longitude: roundTo(ascendant, 6),
+        sign: ascData.sign,
+        degree: ascData.degree,
+        minute: ascData.minute,
+        formatted: `${ascData.degree}°${String(ascData.minute).padStart(2, '0')}' ${ascData.sign}`,
+      },
+      midheaven: {
+        longitude: roundTo(midheaven, 6),
+        sign: mcData.sign,
+        degree: mcData.degree,
+        minute: mcData.minute,
+        formatted: `${mcData.degree}°${String(mcData.minute).padStart(2, '0')}' ${mcData.sign}`,
+      },
+      vertex: {
+        longitude: roundTo(vertex, 6),
+        sign: vtxData.sign,
+        degree: vtxData.degree,
+        minute: vtxData.minute,
+      },
+    },
+    aspects,
+    analysis: {
+      sunSign: sun?.sign || null,
+      moonSign: moon?.sign || null,
+      risingSign: ascData.sign,
+      isDayChart,
+      partOfFortune: {
+        longitude: roundTo(partOfFortune, 6),
+        sign: pofData.sign,
+        degree: pofData.degree,
+        minute: pofData.minute,
+        formatted: `${pofData.degree}°${String(pofData.minute).padStart(2, '0')}' ${pofData.sign}`,
+      },
+      hemispheres: hemisphereEmphasis,
+      stelliums,
+      chartRuler,
+      houseRulers,
+      sect,
+    },
+    meta: {
+      julianDayUT: natalChart.meta.julianDayUT,
+      julianDayET: natalChart.meta.julianDayET,
       warnings,
     },
   };

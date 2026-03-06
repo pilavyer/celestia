@@ -3,9 +3,11 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createRequire } from 'module';
-import { calculateNatalChart } from './src/calculator.js';
+import { calculateNatalChart, calculateRelocationChart } from './src/calculator.js';
 import { calculateSynastry } from './src/synastry.js';
 import { calculateTransits } from './src/transit.js';
+import { calculateEclipses } from './src/eclipses.js';
+import { calculateAstrocartography } from './src/astrocartography.js';
 import { HOUSE_SYSTEMS } from './src/constants.js';
 
 const require = createRequire(import.meta.url);
@@ -62,7 +64,7 @@ app.post('/api/natal-chart', (req, res) => {
     const {
       year, month, day, hour, minute,
       latitude, longitude, timezone,
-      houseSystem
+      houseSystem, nodeType, lilithType
     } = req.body;
 
     // Required field validation
@@ -94,6 +96,8 @@ app.post('/api/natal-chart', (req, res) => {
       longitude: toFloat(longitude, 'longitude'),
       timezone,
       houseSystem: houseSystem || 'P',
+      nodeType: nodeType || 'true',
+      lilithType: lilithType || 'mean',
     });
 
     res.json(chart);
@@ -179,6 +183,69 @@ app.post('/api/synastry', (req, res) => {
   }
 });
 
+// ========== RELOCATION CHART ==========
+app.post('/api/relocation', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute,
+      latitude, longitude, timezone,
+      houseSystem,
+      newLatitude, newLongitude, newHouseSystem
+    } = req.body;
+
+    // Required field validation (natal birth data + new location)
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone, newLatitude, newLongitude };
+    const missing = Object.entries(required)
+      .filter(([key, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: 'Missing fields',
+        missing,
+        example: {
+          year: 1990, month: 7, day: 15, hour: 14, minute: 30,
+          latitude: 41.01, longitude: 28.97,
+          timezone: 'Europe/Istanbul',
+          houseSystem: 'P',
+          newLatitude: 40.7128, newLongitude: -74.0060,
+          newHouseSystem: 'P'
+        }
+      });
+    }
+
+    // First calculate natal chart
+    const natalChart = calculateNatalChart({
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
+      timezone,
+      houseSystem: houseSystem || 'P',
+    });
+
+    // Calculate relocation chart
+    const result = calculateRelocationChart(
+      natalChart,
+      toFloat(newLatitude, 'newLatitude'),
+      toFloat(newLongitude, 'newLongitude'),
+      newHouseSystem || houseSystem || 'P'
+    );
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Relocation calculation error:', error.message);
+    res.status(400).json({
+      error: error.message,
+      hint: 'Provide natal birth data + new location coordinates'
+    });
+  }
+});
+
 // ========== TRANSIT CALCULATION ==========
 app.post('/api/transits', (req, res) => {
   try {
@@ -247,6 +314,137 @@ app.post('/api/transits', (req, res) => {
   }
 });
 
+// ========== ECLIPSE CALCULATION ==========
+app.post('/api/eclipses', (req, res) => {
+  try {
+    const { year, startDate, endDate, natal } = req.body;
+
+    // At least year or startDate+endDate is required
+    if (!year && (!startDate || !endDate)) {
+      return res.status(400).json({
+        error: 'Either year or startDate+endDate is required',
+        example: {
+          year: 2026,
+        },
+        exampleWithRange: {
+          startDate: '2026-01-01',
+          endDate: '2026-12-31',
+        },
+      });
+    }
+
+    // Validate year if provided
+    if (year !== undefined) {
+      const y = toInt(year, 'year');
+      if (y < 1800 || y > 2400) {
+        return res.status(400).json({
+          error: 'year must be between 1800 and 2400',
+        });
+      }
+    }
+
+    // Build params
+    const params = {};
+    if (year) params.year = toInt(year, 'year');
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
+    // Optional natal data for aspect calculation
+    if (natal) {
+      // Validate natal data
+      const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude', 'timezone'];
+      const missing = requiredFields.filter(f => natal[f] === undefined || natal[f] === null);
+      if (missing.length > 0) {
+        return res.status(400).json({
+          error: 'Missing natal fields',
+          missing,
+        });
+      }
+
+      // Calculate natal chart for aspect comparison
+      const natalChart = calculateNatalChart({
+        year: toInt(natal.year, 'natal.year'),
+        month: toInt(natal.month, 'natal.month'),
+        day: toInt(natal.day, 'natal.day'),
+        hour: toInt(natal.hour, 'natal.hour'),
+        minute: toInt(natal.minute, 'natal.minute'),
+        latitude: toFloat(natal.latitude, 'natal.latitude'),
+        longitude: toFloat(natal.longitude, 'natal.longitude'),
+        timezone: natal.timezone,
+        houseSystem: natal.houseSystem || 'P',
+      });
+      params.natal = natalChart;
+    }
+
+    const result = calculateEclipses(params);
+    res.json(result);
+
+  } catch (error) {
+    console.error('Eclipse calculation error:', error.message);
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+});
+
+// ========== ASTROCARTOGRAPHY ==========
+app.post('/api/astrocartography', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute,
+      latitude, longitude, timezone,
+      houseSystem,
+      longitudeStep, planets, lineTypes
+    } = req.body;
+
+    // Required field validation
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone };
+    const missing = Object.entries(required)
+      .filter(([key, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: 'Missing fields',
+        missing,
+        example: {
+          year: 1990, month: 7, day: 15, hour: 14, minute: 30,
+          latitude: 41.01, longitude: 28.97,
+          timezone: 'Europe/Istanbul',
+          houseSystem: 'P',
+          longitudeStep: 10,
+        }
+      });
+    }
+
+    const chart = calculateNatalChart({
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
+      timezone,
+      houseSystem: houseSystem || 'P',
+    });
+
+    const acgOptions = {};
+    if (longitudeStep) acgOptions.longitudeStep = toInt(longitudeStep, 'longitudeStep');
+    if (planets) acgOptions.planets = planets;
+    if (lineTypes) acgOptions.lineTypes = lineTypes;
+
+    const result = calculateAstrocartography(chart, acgOptions);
+    res.json(result);
+
+  } catch (error) {
+    console.error('Astrocartography error:', error.message);
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+});
+
 // ========== SUPPORTED HOUSE SYSTEMS ==========
 app.get('/api/house-systems', (req, res) => {
   res.json(HOUSE_SYSTEMS);
@@ -257,7 +455,10 @@ app.listen(PORT, () => {
   console.log(`Celestia Engine running: http://localhost:${PORT}`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/natal-chart`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/synastry`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/relocation`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/transits`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/eclipses`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/astrocartography`);
   console.log(`Health check: GET http://localhost:${PORT}/health`);
 });
 

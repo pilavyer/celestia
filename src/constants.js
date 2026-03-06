@@ -68,6 +68,19 @@ export const MODALITIES = {
   Mutable:  ['Gemini', 'Virgo', 'Sagittarius', 'Pisces'],
 };
 
+// Alternative Node/Lilith options
+// Default: True Node (id:11) and Mean Apogee Lilith (id:12)
+// Alternative: Mean Node (id:10) and Osculating Apogee Lilith (id:13)
+export const NODE_TYPES = {
+  true:  { id: 11, name: 'True Node',  trName: 'Kuzey Ay Düğümü (Gerçek)' },
+  mean:  { id: 10, name: 'Mean Node',  trName: 'Kuzey Ay Düğümü (Ortalama)' },
+};
+
+export const LILITH_TYPES = {
+  mean:        { id: 12, name: 'Lilith',              trName: 'Lilith (Ortalama)' },
+  osculating:  { id: 13, name: 'Osculating Lilith',   trName: 'Lilith (Salınımlı)' },
+};
+
 // Modern sign rulers (sign → ruling planet)
 export const SIGN_RULERS = {
   Aries: 'Mars',
