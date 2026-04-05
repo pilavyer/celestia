@@ -225,6 +225,20 @@ Each person object has the same fields as the natal-chart endpoint.
 
 ---
 
+### `POST /api/synastry-enriched`
+
+Same input as `/api/synastry`. Returns base synastry plus pro enrichments from `calestia-pro` for both persons.
+
+**Response:** Everything from `/api/synastry` plus an `enrichment` object containing:
+- `person1.arabicParts` — 14 Arabic Parts for person 1 (especially Marriage, Eros, Spirit)
+- `person1.asteroids` — 9 asteroids for person 1 with sign, degree, house
+- `person2.arabicParts` — 14 Arabic Parts for person 2
+- `person2.asteroids` — 9 asteroids for person 2
+- `crossAsteroidAspects.person1AsteroidsToP2Planets` — Person 1's asteroids × Person 2's planets
+- `crossAsteroidAspects.person2AsteroidsToP1Planets` — Person 2's asteroids × Person 1's planets
+
+---
+
 ### `POST /api/transits`
 
 Calculate current planetary transits against a natal chart.
