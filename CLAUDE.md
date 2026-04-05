@@ -15,7 +15,16 @@ Celestia is a high-precision astrology calculation engine exposing a REST API. I
 ## Architecture
 
 ### `server.js`
-Express app with 8 endpoints: `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `POST /api/eclipses`, `POST /api/relocation`, `POST /api/astrocartography`, `GET /api/house-systems`, `GET /health`. Input validation via `toInt()`/`toFloat()` helpers, rate limiting (100 req/15min per IP via `express-rate-limit`), configurable CORS via `CORS_ORIGIN` env var.
+Express app with 11 endpoints: 8 core + 3 enriched. Input validation via `toInt()`/`toFloat()` helpers, rate limiting (100 req/15min per IP via `express-rate-limit`), configurable CORS via `CORS_ORIGIN` env var.
+
+**Core endpoints:** `POST /api/natal-chart`, `POST /api/synastry`, `POST /api/transits`, `POST /api/eclipses`, `POST /api/relocation`, `POST /api/astrocartography`, `GET /api/house-systems`, `GET /health`.
+
+**Enriched endpoints (require calestia-pro / celestia-medical):**
+- `POST /api/natal-chart-enriched` — natal chart + Arabic parts, fixed stars, asteroids, Sabian symbols, firdaria, profections
+- `POST /api/medical-chart` — natal chart enriched with 22 medical astrology features (body areas, combustion, critical degrees, speed analysis, planetary strength, declinations, etc.)
+- `POST /api/synastry-enriched` — synastry + Arabic parts per person, asteroids per person, cross-asteroid aspects
+
+**Important:** The synastry-enriched endpoint calculates separate `calculateNatalChart()` calls for enrichment because `calculateSynastry()` person objects lack `meta.julianDayET` which calestia-pro functions require.
 
 ### `src/calculator.js`
 Main natal chart engine. Takes birth data → timezone conversion → Julian Day → planet positions via `swe.calc()` → house cusps via `swe.houses()` → aspects → analysis (moon phase, Part of Fortune, elements, modalities, hemispheres, stelliums, chart ruler, house rulers, sect, lunar mansion, planetary hour). Supports `nodeType` ('true'|'mean') and `lilithType` ('mean'|'osculating') options. Also exports `calculateRelocationChart()`.
@@ -57,15 +66,19 @@ Helper functions: `longitudeToSign()`, `determineMoonPhase()`, `calculatePartOfF
 Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles + orbs), zodiac signs (EN + TR), house systems, elements, modalities, `NODE_TYPES`, `LILITH_TYPES`.
 
 ### `docs/`
-- `calestia_doc.pdf` — Project documentation
-- `MIGRATION_GUIDE_ASTROAK.md` — Guide for embedding Celestia into AstroAK
+- `calestia_doc.pdf` — Project documentation (PDF)
+- `calestia_doc_en.md` — Original v1 build specification
+- `MIGRATION_GUIDE_ASTROAK.md` — Guide for embedding Celestia into AstroAK (v1 + v2)
 
 ### `CHANGELOG.md`
 Version history in [Keep a Changelog](https://keepachangelog.com) format. Update when releasing new versions.
 
-## Medical Astrology
+## Calestia Ecosystem
 
-Medical astrology features are in a separate private package: **celestia-medical**. It depends on this package (`celestia`) and adds 22 health-oriented chart analysis features via `calculateMedicalChart()`.
+Celestia integrates with two sibling packages via `file:` dependencies in `package.json`:
+
+- **calestia-pro** (`file:../calestia-pro`) — 42 advanced calculation functions: fixed stars, asteroids, returns, progressions, Arabic parts, firdaria, profections, zodiacal releasing, vedic/jyotish, and more. Used by the `/api/natal-chart-enriched` and `/api/synastry-enriched` endpoints.
+- **celestia-medical** (`file:../calestia-medical`) — 22 medical astrology features via `calculateMedicalChart()`. Used by the `/api/medical-chart` endpoint. Note: the npm package name is `celestia-medical` (not `calestia-medical`).
 
 ## Critical Rules
 

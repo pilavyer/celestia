@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-04-05
+
+### Added
+
+#### Pro & Medical Integration
+- **Enriched Natal Chart**: `POST /api/natal-chart-enriched` — base natal chart + Arabic Parts (14 traditional lots), fixed star conjunctions (45+ stars), asteroids (9: Ceres, Pallas, Juno, Vesta, Eros, Psyche, Nessus, Pholus, Eris), asteroid-planet aspects, Sabian symbols (all planets + angles), Firdaria periods, and annual/monthly/daily profections
+- **Medical Chart**: `POST /api/medical-chart` — full medical astrology chart with 22 features: body area mapping, combustion analysis, critical degrees, speed classification, planetary strength (Lilly), medical fixed stars, declination/parallels, profection, 6 medical Arabic Parts, antiscia, secondary progressions, solar return, midpoints, mutual receptions, dispositor chain, Void of Course Moon, prenatal lunation, almuten figuris, eclipse health impact, medical planetary hours, medical ingresses
+- **Enriched Synastry**: `POST /api/synastry-enriched` — base synastry + Arabic Parts and asteroids for both persons, cross-asteroid aspects (person1 asteroids × person2 planets and vice versa)
+- `calestia-pro` (file: dependency) — 42+ advanced astrology functions
+- `celestia-medical` (file: dependency) — 22 medical astrology features
+
+### Fixed
+- **synastry-enriched**: Use separate `calculateNatalChart()` calls for enrichment instead of `synastryResult.person1/person2` — synastry person objects lack `meta.julianDayET` required by calestia-pro functions
+
+### Changed
+- 11 API endpoints total (3 new: natal-chart-enriched, medical-chart, synastry-enriched)
+
 ## [4.0.0] - 2026-03-06
 
 ### Added
@@ -113,6 +130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiss Ephemeris data files covering 1800–2400 AD (`ephe/`)
 - 5 natal chart tests (Tests 1-5)
 
+[4.1.0]: https://github.com/pilavyer/celestia/compare/v4.0.0...v4.1.0
+[4.0.0]: https://github.com/pilavyer/celestia/compare/v3.1.0...v4.0.0
 [3.0.0]: https://github.com/pilavyer/celestia/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/pilavyer/celestia/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/pilavyer/celestia/compare/v1.0.0...v2.0.0

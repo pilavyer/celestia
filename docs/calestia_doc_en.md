@@ -1,5 +1,7 @@
 # ASTRO-ENGINE: Swiss Ephemeris Natal Chart Calculation API — Project Specification
 
+> **Note:** This is the original v1 build specification that was used to create the Celestia engine from scratch. It covers natal charts, synastry, and transits. For the current v4 API reference (including eclipses, relocation, astrocartography, dignity detail, sect, lunar mansions, planetary hours), see the [README.md](../README.md) and [MIGRATION_GUIDE_ASTROAK.md](MIGRATION_GUIDE_ASTROAK.md).
+
 ## WHAT IS THIS DOCUMENT?
 
 This document is a comprehensive technical specification for building a professional-grade natal chart calculation API using the Swiss Ephemeris library. It includes step-by-step instructions, code examples, critical points to be aware of, and testing procedures.

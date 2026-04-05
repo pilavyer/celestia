@@ -1,6 +1,6 @@
 # Celestia
 
-High-precision astrology calculation engine powered by Swiss Ephemeris. Calculates natal charts, synastry (cross-aspects + composite + Davison), transits (with ingresses + VoC Moon), eclipses, relocation charts, and astrocartography via a REST API.
+High-precision astrology calculation engine powered by Swiss Ephemeris. Calculates natal charts, enriched natal charts (Arabic Parts, asteroids, fixed stars, Sabian symbols, Firdaria, profections), medical astrology charts (22 features), synastry, enriched synastry (cross-asteroid aspects), transits (with ingresses + VoC Moon), eclipses, relocation charts, and astrocartography via a REST API.
 
 ## Features
 
@@ -37,7 +37,9 @@ npm run dev      # auto-reload with nodemon
 npm test         # run test suite (39 tests)
 ```
 
-> **Medical Astrology** features (planetary strength, fixed stars, progressions, midpoints, etc.) are in a separate private package: [`calestia-medical`](https://github.com/pilavyer/calestia-medical).
+> **Advanced Techniques** (fixed stars, asteroids, returns, progressions, firdaria, draconic, harmonics, sidereal, vedic/jyotish, zodiacal releasing, profections, primary directions, heliacal events) are in [`calestia-pro`](https://github.com/pilavyer/calestia-pro).
+>
+> **Medical Astrology** features (planetary strength, fixed stars, progressions, midpoints, decumbiture, etc.) are in [`calestia-medical`](https://github.com/pilavyer/calestia-medical).
 
 ## API Reference
 
@@ -144,6 +146,29 @@ curl -X POST http://localhost:3000/api/natal-chart \
 }
 ```
 </details>
+
+---
+
+### `POST /api/natal-chart-enriched`
+
+Same input as `/api/natal-chart`. Returns base natal chart plus pro enrichments from `calestia-pro`.
+
+**Response:** Everything from `/api/natal-chart` plus an `enrichment` object containing:
+- `arabicParts` — 14 traditional Arabic Parts (Fortune, Spirit, Eros, Marriage, Commerce, etc.) with house placement
+- `fixedStars` — Fixed star conjunctions with natal planets (45+ stars, sorted by orb)
+- `asteroids` — 9 asteroids (Ceres, Pallas, Juno, Vesta, Eros, Psyche, Nessus, Pholus, Eris) with sign, degree, house
+- `asteroidAspects` — Asteroid-planet aspects with strength scoring
+- `sabianSymbols` — Sabian symbol for each planet, ASC, MC, and Part of Fortune
+- `firdaria` — Current Firdaria period and sub-period with dates
+- `profections` — Annual, monthly, and daily profection with time lord
+
+---
+
+### `POST /api/medical-chart`
+
+Same input as `/api/natal-chart` (without `nodeType`/`lilithType`). Returns a full medical astrology chart from `celestia-medical`.
+
+**Response:** Base natal chart data with medical enrichments on every planet (`bodyAreas`, `combustion`, `criticalDegree`, `speedAnalysis`, `planetaryStrength`, `declination`, `isOutOfBounds`), `healthDomain` on every house cusp, and a comprehensive `analysis.medicalAstrology` section containing: profection, 6 medical Arabic Parts (Illness, Surgery, Healing, Vitality, Crisis, Death), antiscia, 22 medical fixed stars, declinations, parallel aspects, secondary progressions, solar return, midpoints, mutual receptions, dispositor chain, Void of Course Moon, prenatal lunation, almuten figuris, eclipse health impact, medical planetary hours, and medical ingresses.
 
 ---
 
@@ -354,6 +379,90 @@ Calculate planetary lines across the world map.
 
 ---
 
+### `POST /api/natal-chart-enriched`
+
+Calculate an enriched natal chart with Arabic parts, fixed stars, asteroids, Sabian symbols, firdaria, and profections from [calestia-pro](https://github.com/pilavyer/calestia-pro).
+
+**Request body:** Same as `/api/natal-chart`.
+
+```bash
+curl -X POST http://localhost:3000/api/natal-chart-enriched \
+  -H "Content-Type: application/json" \
+  -d '{
+    "year": 1990, "month": 7, "day": 15,
+    "hour": 14, "minute": 30,
+    "latitude": 41.0082, "longitude": 28.9784,
+    "timezone": "Europe/Istanbul"
+  }'
+```
+
+**Response:** Full natal chart (same as `/api/natal-chart`) plus an `enrichment` object:
+
+| Field | Description |
+|-------|-------------|
+| `enrichment.arabicParts` | 14 Arabic parts with positions, houses, formulas (`{ parts: [...], meta: {...} }`) |
+| `enrichment.fixedStars` | Fixed star conjunctions with natal planets (48 stars, 1.5° orb) |
+| `enrichment.asteroids` | 9 asteroids (Ceres, Pallas, Juno, Vesta, Eros, Psyche, Nessus, Pholus, Eris) with house placement |
+| `enrichment.asteroidAspects` | Aspects between asteroids and natal planets |
+| `enrichment.sabianSymbols` | Sabian symbols for all planets, ASC, MC |
+| `enrichment.firdaria` | Firdaria planetary periods with `activePeriod` and `activeSubPeriod` |
+| `enrichment.profections` | Annual, monthly, daily profections with time lord and monthly schedule |
+
+---
+
+### `POST /api/medical-chart`
+
+Calculate a medical astrology chart with 22 health-oriented features from [calestia-medical](https://github.com/pilavyer/calestia-medical).
+
+**Request body:** Same as `/api/natal-chart` (without `nodeType`/`lilithType`).
+
+```bash
+curl -X POST http://localhost:3000/api/medical-chart \
+  -H "Content-Type: application/json" \
+  -d '{
+    "year": 1990, "month": 7, "day": 15,
+    "hour": 14, "minute": 30,
+    "latitude": 41.0082, "longitude": 28.9784,
+    "timezone": "Europe/Istanbul"
+  }'
+```
+
+**Response:** Full natal chart with medical enrichment on each planet and in the analysis:
+
+- **Planet fields:** `bodyAreas`, `combustion`, `criticalDegree`, `speedAnalysis`, `planetaryStrength`, `declination`, `isOutOfBounds`, `oobMedicalNote`
+- **House cusps:** `healthDomain` per house (e.g., "Acute illness, daily health habits" for 6th house)
+- **Analysis:** `analysis.medicalAstrology` section with profection, Arabic parts, antiscia, fixed stars, declinations, parallel aspects, secondary progressions, solar return, midpoints, mutual receptions, dispositor chain, void of course Moon, prenatal lunation, almuten figuris, eclipse impact, medical planetary hours, medical ingresses
+
+---
+
+### `POST /api/synastry-enriched`
+
+Calculate enriched synastry with Arabic parts and asteroids per person, plus cross-asteroid aspects.
+
+**Request body:** Same as `/api/synastry`.
+
+```bash
+curl -X POST http://localhost:3000/api/synastry-enriched \
+  -H "Content-Type: application/json" \
+  -d '{
+    "person1": { "year": 1998, "month": 11, "day": 25, "hour": 10, "minute": 17, "latitude": 41.2867, "longitude": 36.33, "timezone": "Europe/Istanbul" },
+    "person2": { "year": 2000, "month": 3, "day": 15, "hour": 14, "minute": 30, "latitude": 39.9208, "longitude": 32.8541, "timezone": "Europe/Istanbul" }
+  }'
+```
+
+**Response:** Full synastry response (person1, person2, synastry, composite, davison) plus an `enrichment` object:
+
+| Field | Description |
+|-------|-------------|
+| `enrichment.person1.arabicParts` | 14 Arabic parts for person 1 |
+| `enrichment.person1.asteroids` | 9 asteroids for person 1 |
+| `enrichment.person2.arabicParts` | 14 Arabic parts for person 2 |
+| `enrichment.person2.asteroids` | 9 asteroids for person 2 |
+| `enrichment.crossAsteroidAspects.person1AsteroidsToP2Planets` | Person 1's asteroids aspecting person 2's planets |
+| `enrichment.crossAsteroidAspects.person2AsteroidsToP1Planets` | Person 2's asteroids aspecting person 1's planets |
+
+---
+
 ### `GET /api/house-systems`
 
 List all supported house systems with descriptions.
@@ -388,8 +497,9 @@ Health check.
 ```
 celestia/
 ├── docs/
-│   ├── calestia_doc.pdf              # Project documentation
-│   └── MIGRATION_GUIDE_ASTROAK.md    # AstroAK embedding guide
+│   ├── calestia_doc.pdf              # Project documentation (PDF)
+│   ├── calestia_doc_en.md            # Original v1 build specification
+│   └── MIGRATION_GUIDE_ASTROAK.md    # AstroAK integration guide (v1 + v2)
 ├── ephe/                              # Swiss Ephemeris data files
 │   ├── seas_18.se1                    # Asteroid data (1800-2400 AD)
 │   ├── sefstars.txt                   # Fixed star catalog
@@ -414,7 +524,7 @@ celestia/
 ├── CHANGELOG.md             # Version history
 ├── CLAUDE.md                # AI developer guide
 ├── LICENSE                  # AGPL-3.0
-├── server.js                # Express REST API (8 endpoints)
+├── server.js                # Express REST API (11 endpoints: 8 core + 3 enriched)
 ├── test.js                  # Test suite (39 tests)
 └── package.json
 ```

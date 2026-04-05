@@ -9,6 +9,16 @@ import { calculateTransits } from './src/transit.js';
 import { calculateEclipses } from './src/eclipses.js';
 import { calculateAstrocartography } from './src/astrocartography.js';
 import { HOUSE_SYSTEMS } from './src/constants.js';
+import {
+  calculateArabicParts,
+  findStarConjunctions,
+  calculateChartAsteroids,
+  findAsteroidAspects,
+  getChartSabianSymbols,
+  calculateFirdaria,
+  calculateProfections,
+} from 'calestia-pro';
+import { calculateMedicalChart } from 'celestia-medical';
 
 const require = createRequire(import.meta.url);
 const { version } = require('./package.json');
@@ -445,6 +455,208 @@ app.post('/api/astrocartography', (req, res) => {
   }
 });
 
+// ========== ENRICHED NATAL CHART ==========
+app.post('/api/natal-chart-enriched', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute,
+      latitude, longitude, timezone,
+      houseSystem, nodeType, lilithType
+    } = req.body;
+
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone };
+    const missing = Object.entries(required)
+      .filter(([, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'Missing fields', missing });
+    }
+
+    const params = {
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
+      timezone,
+      houseSystem: houseSystem || 'P',
+      nodeType: nodeType || 'true',
+      lilithType: lilithType || 'mean',
+    };
+
+    const natalChart = calculateNatalChart(params);
+
+    // Pro enrichments
+    const arabicParts = calculateArabicParts(natalChart);
+    const fixedStars = findStarConjunctions(natalChart);
+    const asteroids = calculateChartAsteroids(natalChart);
+    const asteroidAspects = findAsteroidAspects(asteroids, natalChart.planets);
+    const sabianSymbols = getChartSabianSymbols(natalChart);
+
+    const isDayChart = natalChart.analysis?.isDayChart ?? true;
+    const firdaria = calculateFirdaria({
+      year: params.year,
+      month: params.month,
+      day: params.day,
+      isDayChart,
+    });
+
+    const today = new Date();
+    const targetDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const profections = calculateProfections(natalChart, targetDate);
+
+    res.json({
+      ...natalChart,
+      enrichment: {
+        arabicParts,
+        fixedStars,
+        asteroids,
+        asteroidAspects,
+        sabianSymbols,
+        firdaria,
+        profections,
+      },
+    });
+
+  } catch (error) {
+    console.error('Enriched natal calculation error:', error.message);
+    res.status(400).json({
+      error: error.message,
+      hint: 'Use IANA format for timezone (e.g.: "Europe/Istanbul", "America/New_York")'
+    });
+  }
+});
+
+// ========== MEDICAL CHART ==========
+app.post('/api/medical-chart', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute,
+      latitude, longitude, timezone,
+      houseSystem
+    } = req.body;
+
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone };
+    const missing = Object.entries(required)
+      .filter(([, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'Missing fields', missing });
+    }
+
+    const chart = calculateMedicalChart({
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
+      timezone,
+      houseSystem: houseSystem || 'P',
+    });
+
+    res.json(chart);
+
+  } catch (error) {
+    console.error('Medical chart calculation error:', error.message);
+    res.status(400).json({
+      error: error.message,
+      hint: 'Use IANA format for timezone (e.g.: "Europe/Istanbul", "America/New_York")'
+    });
+  }
+});
+
+// ========== ENRICHED SYNASTRY ==========
+app.post('/api/synastry-enriched', (req, res) => {
+  try {
+    const { person1, person2 } = req.body;
+
+    if (!person1 || !person2) {
+      return res.status(400).json({
+        error: 'Missing data: person1 and person2 objects are required',
+      });
+    }
+
+    const requiredFields = ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude', 'timezone'];
+
+    for (const [label, person] of [['person1', person1], ['person2', person2]]) {
+      const missing = requiredFields.filter(f => person[f] === undefined || person[f] === null);
+      if (missing.length > 0) {
+        return res.status(400).json({ error: `Missing fields for ${label}`, missing });
+      }
+    }
+
+    const p1Params = {
+      year: toInt(person1.year, 'person1.year'),
+      month: toInt(person1.month, 'person1.month'),
+      day: toInt(person1.day, 'person1.day'),
+      hour: toInt(person1.hour, 'person1.hour'),
+      minute: toInt(person1.minute, 'person1.minute'),
+      latitude: toFloat(person1.latitude, 'person1.latitude'),
+      longitude: toFloat(person1.longitude, 'person1.longitude'),
+      timezone: person1.timezone,
+      houseSystem: person1.houseSystem || 'P',
+    };
+    const p2Params = {
+      year: toInt(person2.year, 'person2.year'),
+      month: toInt(person2.month, 'person2.month'),
+      day: toInt(person2.day, 'person2.day'),
+      hour: toInt(person2.hour, 'person2.hour'),
+      minute: toInt(person2.minute, 'person2.minute'),
+      latitude: toFloat(person2.latitude, 'person2.latitude'),
+      longitude: toFloat(person2.longitude, 'person2.longitude'),
+      timezone: person2.timezone,
+      houseSystem: person2.houseSystem || 'P',
+    };
+
+    const synastryResult = calculateSynastry(p1Params, p2Params);
+
+    // Calculate full natal charts for pro enrichments (synastry person objects lack meta.julianDayET)
+    const p1Chart = calculateNatalChart(p1Params);
+    const p2Chart = calculateNatalChart(p2Params);
+
+    const p1ArabicParts = calculateArabicParts(p1Chart);
+    const p2ArabicParts = calculateArabicParts(p2Chart);
+
+    const p1Asteroids = calculateChartAsteroids(p1Chart);
+    const p2Asteroids = calculateChartAsteroids(p2Chart);
+
+    // Cross-asteroid aspects: person1 asteroids × person2 planets and vice versa
+    const p1AsteroidsCrossP2 = findAsteroidAspects(p1Asteroids, p2Chart.planets);
+    const p2AsteroidsCrossP1 = findAsteroidAspects(p2Asteroids, p1Chart.planets);
+
+    res.json({
+      ...synastryResult,
+      enrichment: {
+        person1: {
+          arabicParts: p1ArabicParts,
+          asteroids: p1Asteroids,
+        },
+        person2: {
+          arabicParts: p2ArabicParts,
+          asteroids: p2Asteroids,
+        },
+        crossAsteroidAspects: {
+          person1AsteroidsToP2Planets: p1AsteroidsCrossP2,
+          person2AsteroidsToP1Planets: p2AsteroidsCrossP1,
+        },
+      },
+    });
+
+  } catch (error) {
+    console.error('Enriched synastry calculation error:', error.message);
+    res.status(400).json({
+      error: error.message,
+      hint: 'Check birth data for both persons'
+    });
+  }
+});
+
 // ========== SUPPORTED HOUSE SYSTEMS ==========
 app.get('/api/house-systems', (req, res) => {
   res.json(HOUSE_SYSTEMS);
@@ -454,7 +666,10 @@ app.get('/api/house-systems', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Celestia Engine running: http://localhost:${PORT}`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/natal-chart`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/natal-chart-enriched`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/medical-chart`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/synastry`);
+  console.log(`API endpoint: POST http://localhost:${PORT}/api/synastry-enriched`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/relocation`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/transits`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/eclipses`);
