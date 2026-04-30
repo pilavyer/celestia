@@ -73,6 +73,18 @@ Defines celestial bodies (with Swiss Ephemeris IDs), aspect definitions (angles 
 ### `CHANGELOG.md`
 Version history in [Keep a Changelog](https://keepachangelog.com) format. Update when releasing new versions.
 
+### ATCC Forward Test Engine
+
+Standalone scripts for the AstroAK Transit Currency Crypto (ATCC) v6.1 financial astrology method. These are NOT part of the core API — they are research tools.
+
+- **`atcc_forward.js`** — Monthly forward test prediction engine. Calculates natal charts for 15 crypto assets, scans outer planet transits, applies C5 mechanical scoring with multiplier stacking (C1d tier, C4b BTC overlay, C7a generational suppression, C7b mutual weakness). Outputs sealed predictions to `predictions/` directory. Usage: `node atcc_forward.js YYYY-MM [bull|range|bear]`
+- **`_op_report.js`** — One-off transit report script for OP (Optimism), Apr 9 – May 15, 2026 window. Used for manual analysis validation.
+- **`predictions/`** — Sealed prediction output directory (JSON + TXT). Files must NOT be modified after creation (forward test protocol).
+
+**sweph API notes for standalone scripts:**
+- `swe.houses()` returns `{ data: { houses: [...], points: [ASC, MC, ...] } }` — access ASC via `houses.data.points[0]`, MC via `houses.data.points[1]`
+- `swe.jdut1_to_utc()` returns `{ year, month, day, hour, minute, second }` — NOT nested in `.data[]`
+
 ## Calestia Ecosystem
 
 Celestia integrates with two sibling packages via `file:` dependencies in `package.json`:
@@ -118,6 +130,10 @@ node verify-comprehensive.js   # 40 charts, planet/house/sign (2,765 checks)
 node verify-famous-charts.js   # 15 famous charts (658 checks)
 node verify-exhaustive.js      # All derived fields: aspects, dignities, PoF, etc. (23,396 checks)
 node verify-astrodatabank.js   # 10 Astro-Databank reference charts
+
+# ATCC Forward Test Engine (research tools, not part of core API)
+node atcc_forward.js 2026-05 range   # Generate sealed monthly predictions (15 coins)
+node _op_report.js                    # One-off OP transit report
 ```
 
 ## Tests
@@ -141,5 +157,6 @@ Run with `node test.js` — all tests should print "PASS".
 ## Security
 
 - `compare.js` and `verify-synastry.js` contain API keys — they are in `.gitignore` and must NEVER be committed
+- `atcc_forward.js`, `_op_report.js`, and `predictions/` are research tools — they are in `.gitignore` and must NEVER be committed
 - Rate limiting: 100 requests per 15 minutes per IP on `/api/` routes
 - No other secrets or environment variables are required to run the project

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2026-04-30
+
+### Added
+- **ATCC Forward Test Engine** (`atcc_forward.js`): Standalone prediction engine for 15 crypto assets using ATCC v6.1 methodology. Features: automatic natal chart calculation with S/V/SM/Tier classification, monthly transit scanning with proper transit orbs, C5 mechanical scoring with orb bands (≤1°=±3, 1.1-2.5°=±2, 2.6-5°=±1), dignity-direction filter (C3), multiplier stacking (C1d tier, C4b BTC overlay, C7a generational suppression, C7b mutual weakness), triple hit detection (flag-only), ingress detection, mundane outer-outer aspect scanning, sealed prediction output (JSON + TXT). Usage: `node atcc_forward.js YYYY-MM [bull|range|bear]`
+- **OP Transit Report** (`_op_report.js`): One-off transit report for OP (Optimism) covering Apr 9 – May 15, 2026
+- `predictions/` directory for sealed forward test output
+
+### Fixed
+- **Asteroid ephemeris files**: Added 5 individual `.se1` files for Eros, Psyche, Nessus, Pholus, and Eris (downloaded from Swiss Ephemeris Dropbox). Previously these asteroids silently returned 0° Aries due to missing ephemeris data
+- **Asteroid error checking** (calestia-pro `src/asteroids.js`): Added `result.flag === -1` check after `swe.calc()` to throw explicit error instead of silently returning zero values
+- **verify-v2.js asteroid count assertion**: Test was hard-coded to expect 4 distinct asteroids, but the asteroids module now returns 9 (Ceres, Pallas, Juno, Vesta + Eros, Psyche, Nessus, Pholus, Eris). Generalized to `uniqueLons.size === asteroids.length`
+
 ## [4.1.0] - 2026-04-05
 
 ### Added

@@ -32,3 +32,8 @@ build/Release
 # Dev utilities with API keys — NEVER commit
 compare.js
 verify-synastry.js
+
+# ATCC research tools — NEVER commit
+atcc_forward.js
+_op_report.js
+predictions/
