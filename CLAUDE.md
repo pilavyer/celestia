@@ -92,6 +92,17 @@ Celestia integrates with two sibling packages via `file:` dependencies in `packa
 - **calestia-pro** (`file:../calestia-pro`) — 42 advanced calculation functions: fixed stars, asteroids, returns, progressions, Arabic parts, firdaria, profections, zodiacal releasing, vedic/jyotish, and more. Used by the `/api/natal-chart-enriched` and `/api/synastry-enriched` endpoints.
 - **celestia-medical** (`file:../calestia-medical`) — 22 medical astrology features via `calculateMedicalChart()`. Used by the `/api/medical-chart` endpoint. Note: the npm package name is `celestia-medical` (not `calestia-medical`).
 
+### Shared Ephemeris
+
+Both sibling packages need access to the Swiss Ephemeris data files, which physically live in `celestia/ephe/`. They reach those files differently:
+
+- **calestia-pro** uses a **relative symlink** at `calestia-pro/ephe → ../celestia/ephe`, force-tracked in git as mode `120000` so it survives clones and Render checkouts. calestia-pro has no npm dep on celestia, so this symlink is the only way it can find the ephemeris. Absolute symlinks or untracked symlinks **will break Render** — see `calestia-pro/CLAUDE.md` → Ephemeris Symlink Rule.
+- **celestia-medical** uses `path.resolve(__dirname, '..', 'node_modules', 'celestia', 'ephe')` because it has a `file:` dep on celestia. Whatever ships in `celestia/ephe/` becomes available via `node_modules/celestia/ephe/` after `npm install`.
+
+### Production Deployment
+
+For production, the three packages are bundled into a separate monorepo, **`celestia-deploy`** (`github.com/pilavyer/celestia-deploy`), which is auto-deployed to Render. That repo contains byte-identical copies of all three packages plus a root `package.json` with an `install:all` + `start` chain. When making changes here, mirror them into `celestia-deploy/` to keep drift = 0; the `celestia-deploy/CLAUDE.md` file documents the sync workflow.
+
 ## Critical Rules
 
 ### Julian Day: ET vs UT
