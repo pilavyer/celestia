@@ -51,6 +51,8 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     history,
   });
 
+  emit('status', { stage: 'start', message: 'Sorunu analiz ediyorum…' });
+
   let streamedChars = 0;
   const onChunk = (piece) => {
     // Yalnızca araçsız (nihai cevap) turlarının metni canlı akar;
@@ -89,6 +91,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
       responseParts.push({ functionResponse: { name: fc.name, response: { result } } });
     }
+    emit('status', { stage: 'writing', message: 'Yorum yazılıyor…' });
     response = await chat.send(responseParts, onChunk);
     addUsage(response.usage);
   }
