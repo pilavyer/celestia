@@ -64,9 +64,9 @@ export function compactTransitHits(result, maxHits = 20) {
   return {
     moment: result.transitMoment,
     hits: result.transits.slice(0, maxHits).map((h) => ({
-      t: h.transitPlanet + (h.isRetrograde ? ' ℞' : ''),
-      asp: h.type,
-      n: h.natalPoint,
+      transiting: h.transitPlanet + (h.isRetrograde ? ' ℞' : ''),
+      aspect: h.type,
+      natalPoint: h.natalPoint,
       orb: r1(h.orb),
       exact: h.isExact || undefined,
       applying: h.isApplying || undefined,
@@ -84,7 +84,7 @@ export function compactTransitScan(result, maxItems = 15) {
   return {
     periodDays: result.periodDays,
     importantTransits: (result.importantTransits || []).slice(0, maxItems).map((t) => ({
-      t: t.transitPlanet, asp: t.type, n: t.natalPlanet, orb: r1(t.orb), strength: t.strength,
+      transiting: t.transitPlanet, aspect: t.type, natalPoint: t.natalPlanet, orb: r1(t.orb), strength: t.strength,
     })),
     ingresses: (result.ingresses || []).slice(0, 10).map((i) => ({
       planet: i.planet, from: i.fromSign, to: i.toSign, at: i.exactTime,
@@ -99,7 +99,7 @@ export function compactSynastry(result) {
     .filter((a) => KEY.includes(a.planet1) && KEY.includes(a.planet2))
     .sort((a, b) => a.orb - b.orb)
     .slice(0, 14)
-    .map((a) => ({ p1: a.planet1, asp: a.type, p2: a.planet2, orb: r1(a.orb) }));
+    .map((a) => ({ person1Point: a.planet1, aspect: a.type, person2Point: a.planet2, orb: r1(a.orb) }));
   const pick = (chart, name) => {
     const p = chart?.planets?.find((x) => x.name === name);
     return p ? `${p.sign} ${r1(p.longitude % 30)}°` : undefined;

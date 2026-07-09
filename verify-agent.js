@@ -30,7 +30,7 @@ check('natal: firdaria Jüpiter/Mars', natal.firdaria?.major === 'Jupiter' && na
 
 const hits = executeTool({ name: 'get_transit_hits', args: { personId: 'yasemin', date: '2026-07-06', time: '12:00' } }, { peopleMap, today: '2026-07-06' });
 check('transit-hits: VoC true', hits.moon?.voidOfCourse === true, JSON.stringify(hits.moon));
-check('transit-hits: Satürn☍Uranüs exact listede', hits.hits?.some((h) => h.t.startsWith('Saturn') && h.n === 'Uranus' && h.orb < 0.3));
+check('transit-hits: Satürn☍Uranüs exact listede', hits.hits?.some((h) => h.transiting.startsWith('Saturn') && h.natalPoint === 'Uranus' && h.orb < 0.3));
 
 const scan = executeTool({ name: 'scan_transit_period', args: { personId: 'rasit', startDate: '2026-07-08', days: 7 } }, { peopleMap, today: '2026-07-08' });
 check('scan: önemli transit listesi dolu', Array.isArray(scan.importantTransits) && scan.importantTransits.length > 0);
