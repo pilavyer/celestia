@@ -7,6 +7,7 @@ import { calculateNatalChart } from '../calculator.js';
 import { calculateSynastry } from '../synastry.js';
 import { calculateTransits } from '../transit.js';
 import { calculateTransitHits } from '../transit-hits.js';
+import { calculateElectionScan } from '../election-scan.js';
 import {
   calculateArabicParts,
   findStarConjunctions,
@@ -60,6 +61,23 @@ export const TOOL_DECLARATIONS = [
         personId: { type: 'STRING' },
         startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
         days: { type: 'NUMBER', description: 'Tarama süresi gün (1-92)' },
+      },
+      required: ['personId', 'startDate', 'days'],
+    },
+  },
+  {
+    name: 'scan_best_days',
+    description: 'Bir tarih aralığında (1-14 gün) belirli bir amaç için EN UYGUN gün ve saat '
+      + 'pencerelerini skorlar: gün sıralaması, her günün en iyi 3 penceresi (gerekçeli), '
+      + 'VoC ve Merkür retro uyarıları. "Hangi gün daha iyi / ne zaman yapayım" soruları için '
+      + 'TEK çağrı yeterlidir — günleri ayrı ayrı hesaplama.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        personId: { type: 'STRING' },
+        startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
+        days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-14)' },
+        purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | genel' },
       },
       required: ['personId', 'startDate', 'days'],
     },
@@ -134,6 +152,32 @@ const EXECUTORS = {
     const days = Math.max(1, Math.min(92, Math.round(Number(args.days) || 30)));
     const result = calculateTransits(chartParams(person), { days, startDate: args.startDate, topN: 15 });
     return { person: person.label, startDate: args.startDate, ...compactTransitScan(result) };
+  },
+
+  scan_best_days({ args, peopleMap }) {
+    const person = resolvePerson(peopleMap, args.personId);
+    if (!DATE_RE.test(String(args.startDate))) throw new Error('startDate formatı YYYY-MM-DD olmalı');
+    const r = calculateElectionScan({
+      ...chartParams(person),
+      startDate: args.startDate,
+      days: args.days,
+      purpose: ['is-gorusmesi', 'nikah', 'imza', 'seyahat', 'genel'].includes(args.purpose) ? args.purpose : 'genel',
+    });
+    // Kompakt görünüm: sıralama + gün başına en iyi pencere + uyarılar
+    return {
+      person: person.label,
+      purpose: r.purpose,
+      ranking: r.ranking.map((x) => ({
+        date: x.date, day: x.dayOfWeek, avgScore: x.avgScore,
+        bestTime: x.topWindow?.time, bestScore: x.topWindow?.score,
+        keyFactors: x.topWindow?.factors?.slice(0, 3),
+      })),
+      recommendation: r.recommendation,
+      warnings: {
+        mercuryRetroDays: r.dailyResults.filter((d) => d.mercuryRetro).map((d) => d.date),
+        vocInfo: 'Ay-boşluğu cezaları pencere skorlarına dahil edilmiştir',
+      },
+    };
   },
 
   get_synastry({ args, peopleMap }) {

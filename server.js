@@ -7,6 +7,7 @@ import { calculateNatalChart, calculateRelocationChart } from './src/calculator.
 import { calculateSynastry } from './src/synastry.js';
 import { calculateTransits } from './src/transit.js';
 import { calculateTransitHits } from './src/transit-hits.js';
+import { calculateElectionScan } from './src/election-scan.js';
 import { calculateEclipses } from './src/eclipses.js';
 import { calculateAstrocartography } from './src/astrocartography.js';
 import { HOUSE_SYSTEMS } from './src/constants.js';
@@ -458,6 +459,36 @@ app.post('/api/astrocartography', (req, res) => {
 });
 
 // ========== ENRICHED NATAL CHART ==========
+// ========== ELECTION SCAN (single-call scored day/time windows) ==========
+app.post('/api/election-scan', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute, latitude, longitude, timezone,
+      startDate, days, purpose, eventLatitude, eventLongitude, eventTimezone,
+      startHour, endHour, stepMinutes,
+    } = req.body;
+
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone, startDate };
+    const missing = Object.entries(required)
+      .filter(([, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'Missing fields', missing });
+    }
+
+    const result = calculateElectionScan({
+      year: toInt(year, 'year'), month: toInt(month, 'month'), day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'), minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'), longitude: toFloat(longitude, 'longitude'),
+      timezone, startDate, days, purpose,
+      eventLatitude, eventLongitude, eventTimezone, startHour, endHour, stepMinutes,
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // ========== TRANSIT HITS (single-call aggregation for agent consumers) ==========
 app.post('/api/transit-hits', (req, res) => {
   try {

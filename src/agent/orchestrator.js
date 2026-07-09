@@ -15,6 +15,7 @@ const STATUS_TR = {
   get_transit_hits: 'Günün gökyüzü açıları hesaplanıyor…',
   scan_transit_period: 'Dönem transitleri taranıyor…',
   get_synastry: 'Uyum analizi hesaplanıyor…',
+  scan_best_days: 'En uygun günler taranıyor…',
 };
 
 /**
