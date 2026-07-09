@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-07-09
+
+### Added
+- **Calestia Uzmanı Agent** (`POST /api/agent/ask`, SSE): Gemini function-calling orchestrator with 5 in-process tools (natal profile, transit hits, transit period scan, election scan, synastry), doctrine-based methodology (`src/agent/doctrine.md`), live token streaming, X-Agent-Key service auth, per-user/global daily quotas (quota info in `done` event), structured error codes (`AGENT-403-KEY`, `AGENT-400-VALIDATION`, `AGENT-429-*`, `AGENT-503-CONFIG`, `AGENT-TIMEOUT`, `AGENT-TURN-FAIL`), and automatic Gemini model fallback (survives model retirement, e.g. `gemini-2.5-flash` → `gemini-3-flash-preview`). Env-gated: `AGENT_ENABLED`, `AGENT_SHARED_KEY`, `GEMINI_API_KEY`, `AGENT_GEMINI_MODEL`.
+- **Transit Hits** (`POST /api/transit-hits`): single-call transit→natal aspect list at a given moment (orb-sorted, retrograde/applying flags, VoC status). Core logic in `src/transit-hits.js`.
+- **Election Scan** (`POST /api/election-scan`): single-call scored day×time windows over 1-14 days with purpose variants (is-gorusmesi, nikah, imza, seyahat, genel); planetary-hour/Moon-house/ASC-sign/angularity/Moon-aspect/VoC scoring model. Core logic in `src/election-scan.js`.
+- **Enriched chart date control**: `/api/natal-chart-enriched` accepts optional `targetDate` (profections + firdaria computed for that date instead of "today") and `fixedStarOrb` (0-10, default 1.5). Response gains `enrichment.meta`.
+- Verification suites: `verify-agent.js` (20 checks, mock provider) and `verify-election.js` (13 regression checks against hand-validated references).
+
+### Dependencies
+- Added `@google/genai` (Gemini SDK).
+
 ## [4.1.1] - 2026-04-30
 
 ### Added
