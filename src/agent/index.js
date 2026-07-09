@@ -7,6 +7,15 @@
 import { runAgentTurn } from './orchestrator.js';
 import { createGeminiProvider } from './provider-gemini.js';
 
+// Model emekliliğine dayanıklılık: Google bir modeli kapatırsa (404 "no longer
+// available") sıradaki adaya otomatik geçilir; çalışan model önbelleğe alınır.
+const MODEL_FALLBACKS = ['gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+let activeModel = null;
+const isModelGone = (err) => /NOT_FOUND|no longer available/i.test(err?.message || '');
+function modelCandidates() {
+  return [...new Set([activeModel, process.env.AGENT_GEMINI_MODEL, ...MODEL_FALLBACKS].filter(Boolean))];
+}
+
 const MAX_MESSAGE_LEN = 2000;
 const MAX_PEOPLE = 40; // = AstroAK hesap limiti (normal kullanıcının TÜM kişileri sığar)
 const MAX_HISTORY = 20;
@@ -110,22 +119,45 @@ export function mountAgent(app, { provider } = {}) {
     const heartbeat = setInterval(() => { if (!closed) res.write(': ping\n\n'); }, 15_000);
 
     try {
-      const activeProvider = provider || createGeminiProvider({
-        apiKey: process.env.GEMINI_API_KEY,
-        model: process.env.AGENT_GEMINI_MODEL || 'gemini-2.5-flash',
-      });
-
-      const turn = runAgentTurn({
-        provider: activeProvider,
-        request: { message: message.trim(), people, history, locale },
-        emit: send,
-        maxToolCalls: parseInt(process.env.AGENT_MAX_TOOL_CALLS || '8', 10),
-      });
       const timeout = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Zaman aşımı — lütfen tekrar deneyin')), TURN_TIMEOUT_MS);
       });
 
-      const result = await Promise.race([turn, timeout]);
+      let result;
+      if (provider) {
+        result = await Promise.race([runAgentTurn({
+          provider,
+          request: { message: message.trim(), people, history, locale },
+          emit: send,
+          maxToolCalls: parseInt(process.env.AGENT_MAX_TOOL_CALLS || '8', 10),
+        }), timeout]);
+      } else {
+        const candidates = modelCandidates();
+        let lastErr;
+        for (const model of candidates.slice(0, 3)) {
+          try {
+            const turn = runAgentTurn({
+              provider: createGeminiProvider({ apiKey: process.env.GEMINI_API_KEY, model }),
+              request: { message: message.trim(), people, history, locale },
+              emit: send,
+              maxToolCalls: parseInt(process.env.AGENT_MAX_TOOL_CALLS || '8', 10),
+            });
+            result = await Promise.race([turn, timeout]);
+            if (activeModel !== model) console.log(`[AGENT-MODEL] aktif model: ${model}`);
+            activeModel = model;
+            lastErr = null;
+            break;
+          } catch (err) {
+            lastErr = err;
+            if (isModelGone(err)) {
+              console.warn(`[AGENT-MODEL-GONE] ${model} kullanılamıyor, sıradaki denenecek`);
+              continue;
+            }
+            throw err;
+          }
+        }
+        if (lastErr) throw lastErr;
+      }
 
       send('done', {
         sessionId: sessionId || null,
