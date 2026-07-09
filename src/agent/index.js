@@ -8,7 +8,7 @@ import { runAgentTurn } from './orchestrator.js';
 import { createGeminiProvider } from './provider-gemini.js';
 
 const MAX_MESSAGE_LEN = 2000;
-const MAX_PEOPLE = 20;
+const MAX_PEOPLE = 40; // = AstroAK hesap limiti (normal kullanıcının TÜM kişileri sığar)
 const MAX_HISTORY = 20;
 const TURN_TIMEOUT_MS = 180_000;
 
