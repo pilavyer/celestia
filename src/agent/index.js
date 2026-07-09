@@ -53,10 +53,12 @@ export function mountAgent(app, { provider } = {}) {
   app.post('/api/agent/ask', async (req, res) => {
     // --- Auth (servisler arası) ---
     if (!sharedKey) {
-      return res.status(503).json({ error: 'Agent yapılandırılmamış (AGENT_SHARED_KEY eksik)' });
+      return res.status(503).json({ code: 'AGENT-503-CONFIG', error: 'Agent yapılandırılmamış (AGENT_SHARED_KEY eksik)' });
     }
     if (req.get('x-agent-key') !== sharedKey) {
-      return res.status(403).json({ error: 'Yetkisiz' });
+      const got = String(req.get('x-agent-key') || '(boş)');
+      console.warn(`[AGENT-403-KEY] anahtar uyuşmazlığı (gelen: ${got.slice(0, 8)}… uzunluk=${got.length}, beklenen uzunluk=${sharedKey.length})`);
+      return res.status(403).json({ code: 'AGENT-403-KEY', error: 'Yetkisiz' });
     }
 
     // --- Validation ---
@@ -72,12 +74,18 @@ export function mountAgent(app, { provider } = {}) {
     if (history !== undefined && (!Array.isArray(history) || history.length > MAX_HISTORY)) {
       errors.push(`history en fazla ${MAX_HISTORY} tur olabilir`);
     }
-    if (errors.length) return res.status(400).json({ error: 'Geçersiz istek', details: errors });
+    if (errors.length) {
+      console.warn('[AGENT-400-VALIDATION]', JSON.stringify(errors));
+      return res.status(400).json({ code: 'AGENT-400-VALIDATION', error: 'Geçersiz istek', details: errors });
+    }
+    console.log(`Agent ask: uid=${uid} people=${people?.length || 0} history=${history?.length || 0} msgLen=${message.length}`);
 
     // --- Günlük limitler ---
     const limitHit = checkAndCount(uid, globalMax, uidMax);
     if (limitHit) {
+      console.warn(`[AGENT-429-${limitHit === 'uid' ? 'UID' : 'GLOBAL'}] uid=${uid}`);
       return res.status(429).json({
+        code: limitHit === 'uid' ? 'AGENT-429-UID' : 'AGENT-429-GLOBAL',
         error: limitHit === 'uid' ? 'Günlük kullanım limitine ulaşıldı' : 'Servis günlük kapasitesine ulaştı',
       });
     }
@@ -93,9 +101,10 @@ export function mountAgent(app, { provider } = {}) {
     res.on('close', () => { closed = true; });
     const send = (event, data) => {
       if (closed) return;
-      // type alanı data içinde de tekrarlanır: 'event:' satırını okuyan VE
-      // yalnızca data JSON'una bakan istemci ayrıştırıcıların ikisi de çalışsın.
-      res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, ...data })}\n\n`);
+      // DATA-ONLY SSE: olay tipi 'event:' satırında DEĞİL, JSON'daki 'type'
+      // alanında taşınır. Böylece "blok 'data: ' ile başlamalı" varsayımı yapan
+      // ayrıştırıcılar dahil her SSE istemcisiyle uyumludur.
+      res.write(`data: ${JSON.stringify({ type: event, ...data })}\n\n`);
     };
     const heartbeat = setInterval(() => { if (!closed) res.write(': ping\n\n'); }, 15_000);
 
@@ -125,9 +134,14 @@ export function mountAgent(app, { provider } = {}) {
         toolTrace: result.toolTrace,
         usage: result.usage,
       });
+      console.log(`Agent done: uid=${uid} toolCalls=${result.toolCallCount} in=${result.usage.inputTokens} out=${result.usage.outputTokens}`);
     } catch (err) {
-      console.error('Agent turn error:', err.message);
-      send('error', { message: 'Yorum üretilirken bir sorun oluştu. Lütfen tekrar deneyin.' });
+      const isTimeout = err.message.includes('Zaman aşımı');
+      const code = isTimeout ? 'AGENT-TIMEOUT' : 'AGENT-TURN-FAIL';
+      console.error(`[${code}] uid=${uid}:`, err.message);
+      send('error', { code, message: isTimeout
+        ? 'Yanıt zaman aşımına uğradı. Lütfen tekrar deneyin.'
+        : 'Yorum üretilirken bir sorun oluştu. Lütfen tekrar deneyin.' });
     } finally {
       clearInterval(heartbeat);
       if (!closed) res.end();
