@@ -8,7 +8,7 @@ import { runAgentTurn } from './orchestrator.js';
 import { createGeminiProvider } from './provider-gemini.js';
 
 const MAX_MESSAGE_LEN = 2000;
-const MAX_PEOPLE = 4;
+const MAX_PEOPLE = 10;
 const MAX_HISTORY = 20;
 const TURN_TIMEOUT_MS = 180_000;
 
@@ -93,7 +93,9 @@ export function mountAgent(app, { provider } = {}) {
     res.on('close', () => { closed = true; });
     const send = (event, data) => {
       if (closed) return;
-      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      // type alanı data içinde de tekrarlanır: 'event:' satırını okuyan VE
+      // yalnızca data JSON'una bakan istemci ayrıştırıcıların ikisi de çalışsın.
+      res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, ...data })}\n\n`);
     };
     const heartbeat = setInterval(() => { if (!closed) res.write(': ping\n\n'); }, 15_000);
 

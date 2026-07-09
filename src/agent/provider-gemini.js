@@ -32,7 +32,7 @@ export function createGeminiProvider({ apiKey, model = 'gemini-2.5-flash' }) {
           temperature: 0.6,
         },
         history: history.map((h) => ({
-          role: h.role === 'model' ? 'model' : 'user',
+          role: (h.role === 'model' || h.role === 'assistant') ? 'model' : 'user',
           parts: [{ text: String(h.text || '').slice(0, 4000) }],
         })),
       });
