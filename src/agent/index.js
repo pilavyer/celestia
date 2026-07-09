@@ -164,6 +164,7 @@ export function mountAgent(app, { provider } = {}) {
         toolCalls: result.toolCallCount,
         toolTrace: result.toolTrace,
         usage: result.usage,
+        quota: { usedToday: counters.byUid.get(uid) || 0, dailyLimit: uidMax },
       });
       console.log(`Agent done: uid=${uid} toolCalls=${result.toolCallCount} in=${result.usage.inputTokens} out=${result.usage.outputTokens}`);
     } catch (err) {
