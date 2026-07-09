@@ -33,7 +33,10 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   const peopleMap = new Map(people.map((p) => [p.id, p]));
   const today = new Date().toISOString().slice(0, 10);
 
-  const roster = people.map((p) => `- id:"${p.id}" → ${p.label}`).join('\n') || '(kişi verilmedi)';
+  const roster = people.map((p) => {
+    const selfMark = p.isSelf || /kendim/i.test(p.label) ? ' ← KULLANICININ KENDİSİ' : '';
+    return `- id:"${p.id}" → ${p.label}${selfMark}`;
+  }).join('\n') || '(kişi verilmedi)';
   const contextHeader = [
     `Bugünün tarihi: ${today}`,
     `Yanıt dili: ${locale}`,
@@ -47,7 +50,15 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     history,
   });
 
-  let response = await chat.send([{ text: message }]);
+  let streamedChars = 0;
+  const onChunk = (piece) => {
+    // Yalnızca araçsız (nihai cevap) turlarının metni canlı akar;
+    // araç-çağrılı turların metni provider tarafında zaten akıtılmaz.
+    streamedChars += piece.length;
+    emit('delta', { text: piece });
+  };
+
+  let response = await chat.send([{ text: message }], onChunk);
   let toolCallCount = 0;
   const toolTrace = [];
   const usage = { inputTokens: 0, outputTokens: 0 };
@@ -64,7 +75,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       response = await chat.send([{
         text: '[SISTEM] Araç çağrısı bütçesi doldu. Eldeki verilerle en iyi cevabını ver; '
           + 'eksik kalan hesapları dürüstçe belirt.',
-      }]);
+      }], onChunk);
       addUsage(response.usage);
       break;
     }
@@ -77,10 +88,12 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
       responseParts.push({ functionResponse: { name: fc.name, response: { result } } });
     }
-    response = await chat.send(responseParts);
+    response = await chat.send(responseParts, onChunk);
     addUsage(response.usage);
   }
 
   const text = response.text || '';
-  return { text, toolCallCount, toolTrace, usage };
+  // Streaming desteklemeyen provider'lar (ör. test mock'u) için geri-uyum:
+  if (streamedChars === 0 && text) emit('delta', { text });
+  return { text, toolCallCount, toolTrace, usage, streamedChars };
 }

@@ -1,19 +1,20 @@
 // src/agent/provider-gemini.js
 // Gemini implementation of the provider interface used by the orchestrator.
-// Interface: createChat({system, declarations, history}) => { send(parts) => {functionCalls, text, usage} }
+// Interface: createChat({system, declarations, history}) =>
+//   { send(parts, onChunk?) => {functionCalls, text, usage} }
+// send() streams: onChunk(textPiece) fires as text arrives (typing effect).
 
 import { GoogleGenAI } from '@google/genai';
 
-/** Defensive functionCall extraction (SDK getter varsa onu, yoksa parts'tan). */
-function extractFunctionCalls(resp) {
-  if (Array.isArray(resp.functionCalls) && resp.functionCalls.length) return resp.functionCalls;
-  const parts = resp.candidates?.[0]?.content?.parts || [];
+function chunkFunctionCalls(chunk) {
+  if (Array.isArray(chunk.functionCalls) && chunk.functionCalls.length) return chunk.functionCalls;
+  const parts = chunk.candidates?.[0]?.content?.parts || [];
   return parts.filter((p) => p.functionCall).map((p) => p.functionCall);
 }
 
-function extractText(resp) {
-  if (typeof resp.text === 'string' && resp.text.length) return resp.text;
-  const parts = resp.candidates?.[0]?.content?.parts || [];
+function chunkText(chunk) {
+  if (typeof chunk.text === 'string' && chunk.text.length) return chunk.text;
+  const parts = chunk.candidates?.[0]?.content?.parts || [];
   return parts.filter((p) => typeof p.text === 'string').map((p) => p.text).join('');
 }
 
@@ -38,13 +39,23 @@ export function createGeminiProvider({ apiKey, model = 'gemini-2.5-flash' }) {
       });
 
       return {
-        async send(parts) {
-          const resp = await chat.sendMessage({ message: parts });
-          return {
-            functionCalls: extractFunctionCalls(resp),
-            text: extractText(resp),
-            usage: resp.usageMetadata,
-          };
+        async send(parts, onChunk) {
+          const stream = await chat.sendMessageStream({ message: parts });
+          const functionCalls = [];
+          let text = '';
+          let usage;
+          for await (const chunk of stream) {
+            const piece = chunkText(chunk);
+            if (piece) {
+              text += piece;
+              // Araç çağrısı içeren turlarda metin akıtma (nadiren karışık gelir);
+              // sadece o ana dek functionCall görülmediyse canlı akıt.
+              if (onChunk && functionCalls.length === 0) onChunk(piece);
+            }
+            functionCalls.push(...chunkFunctionCalls(chunk));
+            if (chunk.usageMetadata) usage = chunk.usageMetadata;
+          }
+          return { functionCalls, text, usage };
         },
       };
     },

@@ -38,6 +38,7 @@ function validatePerson(p, i) {
     if (typeof p[f] !== 'number' || Number.isNaN(p[f])) errs.push(`people[${i}].${f} sayı olmalı`);
   }
   if (typeof p.timezone !== 'string' || !p.timezone.includes('/')) errs.push(`people[${i}].timezone IANA formatında olmalı`);
+  if (p.isSelf !== undefined && typeof p.isSelf !== 'boolean') errs.push(`people[${i}].isSelf boolean olmalı`);
   return errs;
 }
 
@@ -126,8 +127,6 @@ export function mountAgent(app, { provider } = {}) {
 
       const result = await Promise.race([turn, timeout]);
 
-      // v0: final metni tek delta olarak akıt (token-token streaming Faz 2'de)
-      send('delta', { text: result.text });
       send('done', {
         sessionId: sessionId || null,
         toolCalls: result.toolCallCount,
