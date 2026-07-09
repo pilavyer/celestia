@@ -20,6 +20,7 @@ import {
   calculateProfections,
 } from 'calestia-pro';
 import { calculateMedicalChart } from 'celestia-medical';
+import { mountAgent } from './src/agent/index.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('./package.json');
@@ -721,6 +722,9 @@ app.get('/api/house-systems', (req, res) => {
 });
 
 // ========== START SERVER ==========
+// ========== CALESTIA UZMANI AGENT (env-gated: AGENT_ENABLED=true) ==========
+mountAgent(app);
+
 app.listen(PORT, () => {
   console.log(`Celestia Engine running: http://localhost:${PORT}`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/natal-chart`);

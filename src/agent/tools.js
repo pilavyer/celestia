@@ -1,0 +1,159 @@
+// src/agent/tools.js
+// Tool declarations (Gemini functionDeclarations format) + in-process executors.
+// People are referenced by personId (resolved from the request's people[] roster)
+// so the model never re-types birth data — eliminating a whole hallucination class.
+
+import { calculateNatalChart } from '../calculator.js';
+import { calculateSynastry } from '../synastry.js';
+import { calculateTransits } from '../transit.js';
+import { calculateTransitHits } from '../transit-hits.js';
+import {
+  calculateArabicParts,
+  findStarConjunctions,
+  calculateFirdaria,
+  calculateProfections,
+} from 'calestia-pro';
+import {
+  compactChart, compactEnrichment, compactTransitHits,
+  compactTransitScan, compactSynastry,
+} from './compact.js';
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export const TOOL_DECLARATIONS = [
+  {
+    name: 'get_natal_profile',
+    description: 'Bir kişinin doğum haritası özeti: gezegenler (burç/ev/dignity), yükselen/MC, '
+      + 'element-modalite dengesi, Arap noktaları, sabit yıldızlar, ve verilen tarih için '
+      + 'profeksiyon (yıl lordu) + firdaria (dönem lordu). Karakter ve "hayat saati" soruları için temel araç.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        personId: { type: 'STRING', description: 'people[] listesindeki kişi id\'si' },
+        targetDate: { type: 'STRING', description: 'Profeksiyon/firdaria için tarih, YYYY-MM-DD. Genellikle sorunun geçtiği tarih veya bugün.' },
+      },
+      required: ['personId'],
+    },
+  },
+  {
+    name: 'get_transit_hits',
+    description: 'Belirli bir gün/saatte gökyüzü gezegenlerinin kişinin natal noktalarına yaptığı '
+      + 'TÜM açılar (orb sıralı, retro ve applying işaretli) + o anki Ay durumu (boşlukta/VoC mi). '
+      + '"Bu gün nasıl / bu tarih uygun mu" soruları için temel araç.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        personId: { type: 'STRING' },
+        date: { type: 'STRING', description: 'YYYY-MM-DD' },
+        time: { type: 'STRING', description: 'HH:mm (yerel, kişinin zaman dilimi). Verilmezse 12:00.' },
+      },
+      required: ['personId', 'date'],
+    },
+  },
+  {
+    name: 'scan_transit_period',
+    description: 'Bir tarih aralığındaki önemli transitleri tarar: en güçlü transit temaları, '
+      + 'burç geçişleri (ingress) ve retro gezegenler. "Önümüzdeki ay/dönem nasıl" soruları için.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        personId: { type: 'STRING' },
+        startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
+        days: { type: 'NUMBER', description: 'Tarama süresi gün (1-92)' },
+      },
+      required: ['personId', 'startDate', 'days'],
+    },
+  },
+  {
+    name: 'get_synastry',
+    description: 'İki kişi arasındaki ilişki analizi: uyum skoru, kilit çapraz açılar, kompozit '
+      + 've Davison ilişki haritası özetleri. Uyum/ilişki soruları için.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        personId1: { type: 'STRING' },
+        personId2: { type: 'STRING' },
+      },
+      required: ['personId1', 'personId2'],
+    },
+  },
+];
+
+function resolvePerson(peopleMap, personId) {
+  const p = peopleMap.get(personId);
+  if (!p) {
+    throw new Error(`Bilinmeyen personId: "${personId}". Mevcut kişiler: ${[...peopleMap.keys()].join(', ')}`);
+  }
+  return p;
+}
+
+function chartParams(person, houseSystem = 'P') {
+  return {
+    year: person.year, month: person.month, day: person.day,
+    hour: person.hour, minute: person.minute,
+    latitude: person.latitude, longitude: person.longitude,
+    timezone: person.timezone, houseSystem,
+  };
+}
+
+const EXECUTORS = {
+  get_natal_profile({ args, peopleMap, today }) {
+    const person = resolvePerson(peopleMap, args.personId);
+    const targetDate = args.targetDate && DATE_RE.test(args.targetDate) ? args.targetDate : today;
+    const chart = calculateNatalChart(chartParams(person));
+    const arabicParts = calculateArabicParts(chart);
+    const fixedStars = findStarConjunctions(chart);
+    const firdaria = calculateFirdaria({
+      year: person.year, month: person.month, day: person.day,
+      isDayChart: chart.analysis?.isDayChart ?? true,
+      targetDate,
+    });
+    const profections = calculateProfections(chart, targetDate);
+    return {
+      person: person.label,
+      targetDate,
+      chart: compactChart(chart),
+      ...compactEnrichment({ arabicParts, fixedStars, firdaria, profections }),
+    };
+  },
+
+  get_transit_hits({ args, peopleMap }) {
+    const person = resolvePerson(peopleMap, args.personId);
+    if (!DATE_RE.test(String(args.date))) throw new Error('date formatı YYYY-MM-DD olmalı');
+    const result = calculateTransitHits({
+      ...chartParams(person),
+      date: args.date,
+      time: args.time && /^\d{2}:\d{2}$/.test(args.time) ? args.time : undefined,
+    });
+    return { person: person.label, ...compactTransitHits(result) };
+  },
+
+  scan_transit_period({ args, peopleMap }) {
+    const person = resolvePerson(peopleMap, args.personId);
+    if (!DATE_RE.test(String(args.startDate))) throw new Error('startDate formatı YYYY-MM-DD olmalı');
+    const days = Math.max(1, Math.min(92, Math.round(Number(args.days) || 30)));
+    const result = calculateTransits(chartParams(person), { days, startDate: args.startDate, topN: 15 });
+    return { person: person.label, startDate: args.startDate, ...compactTransitScan(result) };
+  },
+
+  get_synastry({ args, peopleMap }) {
+    const p1 = resolvePerson(peopleMap, args.personId1);
+    const p2 = resolvePerson(peopleMap, args.personId2);
+    const result = calculateSynastry(chartParams(p1), chartParams(p2));
+    return { person1: p1.label, person2: p2.label, ...compactSynastry(result) };
+  },
+};
+
+/**
+ * Execute a tool call safely. Errors are returned as data (not thrown) so the
+ * model can recover — a failed tool must never kill the agent turn.
+ */
+export function executeTool({ name, args }, context) {
+  const executor = EXECUTORS[name];
+  if (!executor) return { error: `Bilinmeyen araç: ${name}` };
+  try {
+    return executor({ args: args || {}, ...context });
+  } catch (err) {
+    return { error: err.message };
+  }
+}
