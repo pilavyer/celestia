@@ -6,6 +6,7 @@ import { createRequire } from 'module';
 import { calculateNatalChart, calculateRelocationChart } from './src/calculator.js';
 import { calculateSynastry } from './src/synastry.js';
 import { calculateTransits } from './src/transit.js';
+import { calculateTransitHits } from './src/transit-hits.js';
 import { calculateEclipses } from './src/eclipses.js';
 import { calculateAstrocartography } from './src/astrocartography.js';
 import { HOUSE_SYSTEMS } from './src/constants.js';
@@ -456,13 +457,60 @@ app.post('/api/astrocartography', (req, res) => {
 });
 
 // ========== ENRICHED NATAL CHART ==========
+// ========== TRANSIT HITS (single-call aggregation for agent consumers) ==========
+app.post('/api/transit-hits', (req, res) => {
+  try {
+    const {
+      year, month, day, hour, minute, latitude, longitude, timezone,
+      houseSystem, date, time, orbScale, includeAngles,
+    } = req.body;
+
+    const required = { year, month, day, hour, minute, latitude, longitude, timezone, date };
+    const missing = Object.entries(required)
+      .filter(([, val]) => val === undefined || val === null)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      return res.status(400).json({ error: 'Missing fields', missing });
+    }
+
+    const result = calculateTransitHits({
+      year: toInt(year, 'year'),
+      month: toInt(month, 'month'),
+      day: toInt(day, 'day'),
+      hour: toInt(hour, 'hour'),
+      minute: toInt(minute, 'minute'),
+      latitude: toFloat(latitude, 'latitude'),
+      longitude: toFloat(longitude, 'longitude'),
+      timezone,
+      houseSystem: houseSystem || 'P',
+      date,
+      time,
+      orbScale,
+      includeAngles,
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.post('/api/natal-chart-enriched', (req, res) => {
   try {
     const {
       year, month, day, hour, minute,
       latitude, longitude, timezone,
-      houseSystem, nodeType, lilithType
+      houseSystem, nodeType, lilithType,
+      targetDate: targetDateParam, fixedStarOrb
     } = req.body;
+
+    if (targetDateParam !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(targetDateParam))) {
+      return res.status(400).json({ error: 'Invalid targetDate. Expected format: YYYY-MM-DD' });
+    }
+    if (fixedStarOrb !== undefined && (typeof fixedStarOrb !== 'number' || fixedStarOrb <= 0 || fixedStarOrb > 10)) {
+      return res.status(400).json({ error: 'Invalid fixedStarOrb. Expected a number in (0, 10]' });
+    }
 
     const required = { year, month, day, hour, minute, latitude, longitude, timezone };
     const missing = Object.entries(required)
@@ -491,21 +539,27 @@ app.post('/api/natal-chart-enriched', (req, res) => {
 
     // Pro enrichments
     const arabicParts = calculateArabicParts(natalChart);
-    const fixedStars = findStarConjunctions(natalChart);
+    const fixedStars = fixedStarOrb !== undefined
+      ? findStarConjunctions(natalChart, { orb: fixedStarOrb })
+      : findStarConjunctions(natalChart);
     const asteroids = calculateChartAsteroids(natalChart);
     const asteroidAspects = findAsteroidAspects(asteroids, natalChart.planets);
     const sabianSymbols = getChartSabianSymbols(natalChart);
 
     const isDayChart = natalChart.analysis?.isDayChart ?? true;
+
+    const today = new Date();
+    const targetDate = targetDateParam
+      || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     const firdaria = calculateFirdaria({
       year: params.year,
       month: params.month,
       day: params.day,
       isDayChart,
+      targetDate,
     });
 
-    const today = new Date();
-    const targetDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const profections = calculateProfections(natalChart, targetDate);
 
     res.json({
@@ -518,6 +572,10 @@ app.post('/api/natal-chart-enriched', (req, res) => {
         sabianSymbols,
         firdaria,
         profections,
+        meta: {
+          targetDate,
+          fixedStarOrb: fixedStarOrb ?? 1.5,
+        },
       },
     });
 
