@@ -756,6 +756,17 @@ app.get('/api/house-systems', (req, res) => {
 });
 
 // ========== START SERVER ==========
+// Bozuk JSON gövdesi: HTML hata sayfası yerine kodlu temiz JSON
+app.use((err, req, res, next) => {
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ code: 'API-400-BODY', error: 'Geçersiz JSON gövdesi' });
+  }
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ code: 'API-413-BODY', error: 'İstek gövdesi çok büyük' });
+  }
+  next(err);
+});
+
 // ========== CALESTIA UZMANI AGENT (env-gated: AGENT_ENABLED=true) ==========
 mountAgent(app);
 

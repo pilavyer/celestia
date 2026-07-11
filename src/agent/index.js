@@ -4,7 +4,7 @@
 // beta-flag checks happen on the AstroAK backend, which is the only caller.
 // This module must never take down the calculation API: everything is isolated.
 
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual, randomBytes } from 'crypto';
 import { runAgentTurn } from './orchestrator.js';
 import { agentStrings } from './i18n.js';
 import { createGeminiProvider } from './provider-gemini.js';
@@ -110,7 +110,9 @@ export function mountAgent(app, { provider } = {}) {
       console.warn('[AGENT-400-VALIDATION]', JSON.stringify(errors));
       return res.status(400).json({ code: 'AGENT-400-VALIDATION', error: 'Geçersiz istek', details: errors });
     }
-    console.log(`Agent ask: uid=${uid} people=${people?.length || 0} history=${history?.length || 0} msgLen=${message.length}`);
+    const reqId = randomBytes(4).toString('hex');
+    const startedAt = Date.now();
+    console.log(`Agent ask[${reqId}]: uid=${uid} locale=${locale || 'tr'} people=${people?.length || 0} history=${history?.length || 0} msgLen=${message.length}`);
 
     // --- Günlük limitler ---
     const limitHit = checkAndCount(uid, globalMax, uidMax);
@@ -130,7 +132,11 @@ export function mountAgent(app, { provider } = {}) {
       'X-Accel-Buffering': 'no',
     });
     let closed = false;
-    res.on('close', () => { closed = true; });
+    let finished = false;
+    res.on('close', () => {
+      closed = true;
+      if (!finished) console.warn(`[AGENT-ABORT][${reqId}] uid=${uid} istemci bağlantıyı kapattı (${Date.now() - startedAt}ms)`);
+    });
     const send = (event, data) => {
       if (closed) return;
       // DATA-ONLY SSE: olay tipi 'event:' satırında DEĞİL, JSON'daki 'type'
@@ -181,7 +187,9 @@ export function mountAgent(app, { provider } = {}) {
         if (lastErr) throw lastErr;
       }
 
+      finished = true;
       send('done', {
+        requestId: reqId,
         sessionId: sessionId || null,
         toolCalls: result.toolCallCount,
         toolTrace: result.toolTrace,
@@ -191,11 +199,12 @@ export function mountAgent(app, { provider } = {}) {
         // hissiyat/işlem sınıfıdır; site kademeli yıldız fiyatı uygulayabilsin diye.
         costClass: result.toolTrace.some((t) => ['scan_best_days', 'scan_transit_period'].includes(t.tool)) ? 'scan' : 'light',
       });
-      console.log(`Agent done: uid=${uid} toolCalls=${result.toolCallCount} in=${result.usage.inputTokens} out=${result.usage.outputTokens}`);
+      console.log(`Agent done[${reqId}]: uid=${uid} toolCalls=${result.toolCallCount} in=${result.usage.inputTokens} out=${result.usage.outputTokens} ${Date.now() - startedAt}ms`);
     } catch (err) {
+      finished = true;
       const isTimeout = err.message.includes('Zaman aşımı');
       const code = isTimeout ? 'AGENT-TIMEOUT' : 'AGENT-TURN-FAIL';
-      console.error(`[${code}] uid=${uid}:`, err.message);
+      console.error(`[${code}][${reqId}] uid=${uid} ${Date.now() - startedAt}ms:`, err.message);
       const E = agentStrings(locale).error;
       send('error', { code, message: isTimeout ? E.timeout : E.turnFail });
     } finally {

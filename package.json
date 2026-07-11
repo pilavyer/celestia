@@ -1,6 +1,6 @@
 {
   "name": "celestia",
-  "version": "4.6.0",
+  "version": "4.6.1",
   "description": "High-precision astrology calculation engine — natal charts, synastry, transits, eclipses, astrocartography, and more powered by Swiss Ephemeris",
   "main": "server.js",
   "type": "module",

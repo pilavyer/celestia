@@ -82,6 +82,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       toolCallCount++;
       emit('status', { stage: 'tool', tool: fc.name, message: S.tool[fc.name] || S.tool._default });
       const result = executeTool(fc, { peopleMap, today });
+      if (result?.error) console.warn(`[AGENT-TOOL-FAIL] ${fc.name}:`, result.error);
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
       responseParts.push({ functionResponse: { name: fc.name, response: { result } } });
     }
