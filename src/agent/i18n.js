@@ -68,6 +68,22 @@ const STRINGS = {
       turnFail: "Une erreur est survenue pendant la génération. Merci de réessayer.",
     },
   },
+  pt: {
+    start: 'Analisando sua pergunta…',
+    writing: 'Escrevendo sua interpretação…',
+    tool: {
+      get_natal_profile: 'Calculando o mapa natal…',
+      get_transit_hits: 'Calculando os aspectos do céu de hoje…',
+      scan_transit_period: 'Analisando os trânsitos do período…',
+      get_synastry: 'Calculando a compatibilidade…',
+      scan_best_days: 'Buscando os melhores dias…',
+      _default: 'Calculando…',
+    },
+    error: {
+      timeout: 'O tempo de resposta esgotou. Tente novamente.',
+      turnFail: 'Ocorreu um problema ao gerar a interpretação. Tente novamente.',
+    },
+  },
   es: {
     start: 'Analizando tu pregunta…',
     writing: 'Escribiendo tu interpretación…',
