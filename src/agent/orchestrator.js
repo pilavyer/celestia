@@ -58,6 +58,9 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   let response = await chat.send([{ text: message }], onChunk);
   let toolCallCount = 0;
   const toolTrace = [];
+  const visuals = {};
+  const HARMONIOUS = new Set(['Trine', 'Sextile']);
+  const CHALLENGING = new Set(['Square', 'Opposition', 'Quincunx']);
   const usage = { inputTokens: 0, outputTokens: 0 };
   const addUsage = (u) => {
     if (!u) return;
@@ -83,6 +86,26 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       emit('status', { stage: 'tool', tool: fc.name, message: S.tool[fc.name] || S.tool._default });
       const result = executeTool(fc, { peopleMap, today });
       if (result?.error) console.warn(`[AGENT-TOOL-FAIL] ${fc.name}:`, result.error);
+      // Görsel panel verisi: site, açı listesini natal sayfası bileşeniyle çizer
+      if (!result?.error && fc.name === 'get_transit_hits' && Array.isArray(result.hits)) {
+        visuals.aspects = {
+          person: result.person,
+          moment: result.moment?.localTime,
+          items: result.hits.slice(0, 10).map((h) => ({
+            transiting: h.transiting, aspect: h.aspect, natalPoint: h.natalPoint,
+            orb: h.orb, exact: !!h.exact,
+            nature: HARMONIOUS.has(h.aspect) ? 'harmonious' : CHALLENGING.has(h.aspect) ? 'challenging' : 'neutral',
+          })),
+        };
+      }
+      if (!result?.error && fc.name === 'scan_best_days' && Array.isArray(result.ranking)) {
+        visuals.bestDays = {
+          person: result.person, purpose: result.purpose,
+          items: result.ranking.slice(0, 7).map((x) => ({
+            date: x.date, day: x.day, bestTime: x.bestTime, avgScore: x.avgScore,
+          })),
+        };
+      }
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
       responseParts.push({ functionResponse: { name: fc.name, response: { result } } });
     }
@@ -94,5 +117,5 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   const text = response.text || '';
   // Streaming desteklemeyen provider'lar (ör. test mock'u) için geri-uyum:
   if (streamedChars === 0 && text) emit('delta', { text });
-  return { text, toolCallCount, toolTrace, usage, streamedChars };
+  return { text, toolCallCount, toolTrace, usage, streamedChars, visuals };
 }

@@ -103,7 +103,7 @@ export function calculateElectionScan(params) {
     eventLatitude = latitude, eventLongitude = longitude, eventTimezone = timezone,
     startHour = 8, endHour = 18, stepMinutes = 20,
   } = params;
-  const days = Math.max(1, Math.min(31, Math.round(Number(params.days) || 7)));
+  const days = Math.max(1, Math.min(31, Math.round(Number(params.days) || 30)));
 
   if (!DATE_RE.test(String(startDate))) {
     throw new Error(`Invalid startDate: "${startDate}". Expected format: YYYY-MM-DD`);

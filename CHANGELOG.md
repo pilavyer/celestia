@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-07-11
+
+### Added
+- **`done.visuals`** — structured data for the site's visual components: `visuals.aspects` (top-10 transit aspects with orb/exact/nature harmonious|challenging|neutral, from the turn's transit-hits call) and `visuals.bestDays` (top-7 ranked days from election scans). Enables the natal-page-style aspect list to render under chat answers.
+- **30-day default scan**: when the user doesn't specify a range, election scans now default to 30 days (was 7); `days` parameter optional in the tool schema.
+
 ## [4.7.0] - 2026-07-11
 
 ### Changed (answer-quality release — beta feedback)

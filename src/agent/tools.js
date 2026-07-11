@@ -76,10 +76,10 @@ export const TOOL_DECLARATIONS = [
       properties: {
         personId: { type: 'STRING' },
         startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
-        days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-31; ay bütünü için 30-31 kullan)' },
+        days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-31). Verilmezse 30 gün taranır; kullanıcı belirli bir aralık söylemediyse boş bırak.' },
         purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | tasinma | lansman | saglik-randevusu | teklif | genel' },
       },
-      required: ['personId', 'startDate', 'days'],
+      required: ['personId', 'startDate'],
     },
   },
   {
