@@ -168,7 +168,7 @@ const EXECUTORS = {
       person: person.label,
       purpose: r.purpose,
       scanned: { days: r.days, windowsPerDay: r.meta.windowsPerDay, totalWindows: r.meta.totalWindowsScanned },
-      SUNUM_TALIMATI: `Cevabının İLK cümlesinde tarama kapsamını belirt: "${r.days} günü, gün içinde ${r.meta.windowsPerDay} zaman diliminde — toplam ${r.meta.totalWindowsScanned} pencere — AstroAK motoruyla tek tek taradım". Skorları '8/10' gibi ölçekleyerek sunma; 'dönemin en güçlüsü' gibi göreli ifade kullan.`,
+      SUNUM_TALIMATI: `Bu konuşmada tarama kapsamını daha önce anlatmadıysan, cevabının İLK cümlesinde belirt (örnek: "Senin için ${r.days} günü, gün içinde ${r.meta.windowsPerDay} zaman diliminde, toplam ${r.meta.totalWindowsScanned} pencere olarak AstroAk motoruyla tek tek taradım."). Önceki mesajlarında bu cümleyi zaten kurduysan TEKRARLAMA, doğrudan cevaba geç. Skorları '8/10' gibi ölçekleyerek sunma; göreli ifade kullan. Em dash (—) karakteri kullanma.`,
       ranking: r.ranking.map((x) => ({
         date: x.date, day: x.dayOfWeek, avgScore: x.avgScore,
         bestTime: x.topWindow?.time, bestScore: x.topWindow?.score,
