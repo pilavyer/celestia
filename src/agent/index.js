@@ -6,6 +6,7 @@
 
 import { timingSafeEqual } from 'crypto';
 import { runAgentTurn } from './orchestrator.js';
+import { agentStrings } from './i18n.js';
 import { createGeminiProvider } from './provider-gemini.js';
 
 function safeKeyCompare(given, expected) {
@@ -195,9 +196,8 @@ export function mountAgent(app, { provider } = {}) {
       const isTimeout = err.message.includes('Zaman aşımı');
       const code = isTimeout ? 'AGENT-TIMEOUT' : 'AGENT-TURN-FAIL';
       console.error(`[${code}] uid=${uid}:`, err.message);
-      send('error', { code, message: isTimeout
-        ? 'Yanıt zaman aşımına uğradı. Lütfen tekrar deneyin.'
-        : 'Yorum üretilirken bir sorun oluştu. Lütfen tekrar deneyin.' });
+      const E = agentStrings(locale).error;
+      send('error', { code, message: isTimeout ? E.timeout : E.turnFail });
     } finally {
       clearInterval(heartbeat);
       if (!closed) res.end();

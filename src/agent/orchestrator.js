@@ -6,17 +6,10 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { TOOL_DECLARATIONS, executeTool } from './tools.js';
+import { agentStrings } from './i18n.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const DOCTRINE = readFileSync(path.join(__dirname, 'doctrine.md'), 'utf8');
-
-const STATUS_TR = {
-  get_natal_profile: 'Doğum haritası hesaplanıyor…',
-  get_transit_hits: 'Günün gökyüzü açıları hesaplanıyor…',
-  scan_transit_period: 'Dönem transitleri taranıyor…',
-  get_synastry: 'Uyum analizi hesaplanıyor…',
-  scan_best_days: 'En uygun günler taranıyor…',
-};
 
 /**
  * Run one agent turn.
@@ -30,6 +23,7 @@ const STATUS_TR = {
  */
 export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }) {
   const { message, people = [], history = [], locale = 'tr' } = request;
+  const S = agentStrings(locale);
 
   const peopleMap = new Map(people.map((p) => [p.id, p]));
   const today = new Date().toISOString().slice(0, 10);
@@ -51,7 +45,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     history,
   });
 
-  emit('status', { stage: 'start', message: 'Sorunu analiz ediyorum…' });
+  emit('status', { stage: 'start', message: S.start });
 
   let streamedChars = 0;
   const onChunk = (piece) => {
@@ -86,12 +80,12 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     const responseParts = [];
     for (const fc of response.functionCalls) {
       toolCallCount++;
-      emit('status', { stage: 'tool', tool: fc.name, message: STATUS_TR[fc.name] || 'Hesaplanıyor…' });
+      emit('status', { stage: 'tool', tool: fc.name, message: S.tool[fc.name] || S.tool._default });
       const result = executeTool(fc, { peopleMap, today });
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
       responseParts.push({ functionResponse: { name: fc.name, response: { result } } });
     }
-    emit('status', { stage: 'writing', message: 'Yorum yazılıyor…' });
+    emit('status', { stage: 'writing', message: S.writing });
     response = await chat.send(responseParts, onChunk);
     addUsage(response.usage);
   }
