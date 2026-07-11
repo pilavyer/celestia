@@ -92,7 +92,10 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
           person: result.person,
           moment: result.moment?.localTime,
           items: result.hits.slice(0, 10).map((h) => ({
-            transiting: h.transiting, aspect: h.aspect, natalPoint: h.natalPoint,
+            // transiting temiz gezegen adı; retro ayrı boolean (glif eşlemesi için)
+            transiting: String(h.transiting).replace(' ℞', ''),
+            retro: String(h.transiting).includes('℞') || undefined,
+            aspect: h.aspect, natalPoint: h.natalPoint,
             orb: h.orb, exact: !!h.exact,
             nature: HARMONIOUS.has(h.aspect) ? 'harmonious' : CHALLENGING.has(h.aspect) ? 'challenging' : 'neutral',
           })),

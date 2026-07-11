@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.1] - 2026-07-11
+
+### Fixed
+- `visuals.aspects.items[].transiting` is now the clean planet name; retrograde carried as separate optional `retro: true` (was a " ℞"-suffixed string that would break glyph mapping in the site's aspect panel).
+
 ## [4.8.0] - 2026-07-11
 
 ### Added
