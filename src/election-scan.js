@@ -88,7 +88,7 @@ function moonAspect(moonLon, targetLon, orb = 2.5) {
  *
  * @param {object} params - natal fields (year..timezone, houseSystem optional) plus:
  * @param {string} params.startDate - "YYYY-MM-DD"
- * @param {number} params.days - 1-14
+ * @param {number} params.days - 1-31
  * @param {string} [params.purpose='genel'] - is-gorusmesi | nikah | imza | seyahat | genel
  * @param {number} [params.eventLatitude]  - event location (default: natal)
  * @param {number} [params.eventLongitude]
@@ -103,7 +103,7 @@ export function calculateElectionScan(params) {
     eventLatitude = latitude, eventLongitude = longitude, eventTimezone = timezone,
     startHour = 8, endHour = 18, stepMinutes = 20,
   } = params;
-  const days = Math.max(1, Math.min(14, Math.round(Number(params.days) || 7)));
+  const days = Math.max(1, Math.min(31, Math.round(Number(params.days) || 7)));
 
   if (!DATE_RE.test(String(startDate))) {
     throw new Error(`Invalid startDate: "${startDate}". Expected format: YYYY-MM-DD`);

@@ -67,7 +67,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: 'scan_best_days',
-    description: 'Bir tarih aralığında (1-14 gün) belirli bir amaç için EN UYGUN gün ve saat '
+    description: 'Bir tarih aralığında (1-31 gün; TAM AY tek çağrıda taranabilir) belirli bir amaç için EN UYGUN gün ve saat '
       + 'pencerelerini skorlar: gün sıralaması, her günün en iyi 3 penceresi (gerekçeli), '
       + 'VoC ve Merkür retro uyarıları. "Hangi gün daha iyi / ne zaman yapayım" soruları için '
       + 'TEK çağrı yeterlidir — günleri ayrı ayrı hesaplama.',
@@ -76,7 +76,7 @@ export const TOOL_DECLARATIONS = [
       properties: {
         personId: { type: 'STRING' },
         startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
-        days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-14)' },
+        days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-31; ay bütünü için 30-31 kullan)' },
         purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | tasinma | lansman | saglik-randevusu | teklif | genel' },
       },
       required: ['personId', 'startDate', 'days'],
@@ -168,7 +168,7 @@ const EXECUTORS = {
       person: person.label,
       purpose: r.purpose,
       scanned: { days: r.days, windowsPerDay: r.meta.windowsPerDay, totalWindows: r.meta.totalWindowsScanned },
-      SUNUM_TALIMATI: `Bu konuşmada tarama kapsamını daha önce anlatmadıysan, cevabının İLK cümlesinde belirt (örnek: "Senin için ${r.days} günü, gün içinde ${r.meta.windowsPerDay} zaman diliminde, toplam ${r.meta.totalWindowsScanned} pencere olarak AstroAk motoruyla tek tek taradım."). Önceki mesajlarında bu cümleyi zaten kurduysan TEKRARLAMA, doğrudan cevaba geç. Skorları '8/10' gibi ölçekleyerek sunma; göreli ifade kullan. Em dash (—) karakteri kullanma.`,
+      SUNUM_TALIMATI: `1) Bu konuşmada tarama kapsamını daha önce anlatmadıysan İLK cümlende belirt ve TARİH ARALIĞINI YILIYLA söyle (örnek: "${r.startDate} ile başlayan ${r.days} günü (${r.meta.windowsPerDay} zaman dilimi, toplam ${r.meta.totalWindowsScanned} pencere) AstroAk motoruyla tek tek taradım."); zaten anlattıysan tekrarlamadan doğrudan cevaba geç. 2) DERİNLİK ZORUNLU: önerdiğin EN İYİ gün için get_transit_hits çağır ve o günün 2-3 GERÇEK açısını orb dereceleriyle ver; kişinin yıl lordu/firdaria bağlamını bir cümleyle öneriye bağla (bilmiyorsan get_natal_profile çağır). Sadece saat+gezegen saati söylemek YETERSİZDİR. 3) Skorları '8/10' gibi ölçekleme; göreli anlat. Em dash (—) kullanma.`,
       ranking: r.ranking.map((x) => ({
         date: x.date, day: x.dayOfWeek, avgScore: x.avgScore,
         bestTime: x.topWindow?.time, bestScore: x.topWindow?.score,
