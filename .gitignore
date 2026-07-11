@@ -37,3 +37,9 @@ verify-synastry.js
 atcc_forward.js
 _op_report.js
 predictions/
+
+# Kişisel araştırma/rapor scratch scriptleri (natal/rektifikasyon/elektif vs.) — commit etme
+_*.mjs
+_*.py
+_*.json
+_*.md

@@ -218,6 +218,11 @@ export function calculateElectionScan(params) {
         ? 'Dönemde Merkür retrosu var: imza/kesin karar için yazılı teyit ve esneklik önerilir.'
         : undefined,
     },
-    meta: { scoreRange: 'ham skor (yaklaşık -9..+9); yüksek daha iyi', engine: 'Celestia election-scan' },
+    meta: {
+      scoreRange: 'ham skor (yaklaşık -9..+9); yüksek daha iyi',
+      engine: 'Celestia election-scan',
+      windowsPerDay: Math.floor(((endHour - startHour) * 60) / stepMinutes) + 1,
+      totalWindowsScanned: days * (Math.floor(((endHour - startHour) * 60) / stepMinutes) + 1),
+    },
   };
 }

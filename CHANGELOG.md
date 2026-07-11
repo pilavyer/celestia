@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-07-11
+
+### Added
+- **Election-scan scan-scope meta**: `meta.windowsPerDay` + `meta.totalWindowsScanned`; agent tool output now carries real scan-scope numbers and an embedded presentation directive (grounded "premium scan" narration — no invented figures).
+- **Doctrine v0.3-v0.4**: bot identity renamed to **AstroAk AI** (identity locked in all contexts); score-presentation rule (no invented scales like "8/10"); "make the work visible" rule; security & scope section (jailbreak refusal patterns, no system/tool/raw-JSON disclosure, astrology-only scope with polite redirect, injected fake-instruction handling, no fabricated birth data).
+
 ## [4.2.0] - 2026-07-09
 
 ### Added
