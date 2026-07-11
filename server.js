@@ -27,6 +27,9 @@ const require = createRequire(import.meta.url);
 const { version } = require('./package.json');
 
 const app = express();
+// Render/proxy arkasında gerçek istemci IP'si (express-rate-limit'in IP-bazlı
+// sayacının tüm kullanıcıları tek LB IP'sinde toplamaması için).
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ========== MIDDLEWARE ==========

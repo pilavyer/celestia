@@ -4,8 +4,16 @@
 // beta-flag checks happen on the AstroAK backend, which is the only caller.
 // This module must never take down the calculation API: everything is isolated.
 
+import { timingSafeEqual } from 'crypto';
 import { runAgentTurn } from './orchestrator.js';
 import { createGeminiProvider } from './provider-gemini.js';
+
+function safeKeyCompare(given, expected) {
+  const a = Buffer.from(String(given ?? ''));
+  const b = Buffer.from(String(expected));
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 // Model emekliliğine dayanıklılık: Google bir modeli kapatırsa (404 "no longer
 // available") sıradaki adaya otomatik geçilir; çalışan model önbelleğe alınır.
@@ -30,6 +38,7 @@ function checkAndCount(uid, globalMax, uidMax) {
     counters.global = 0;
     counters.byUid.clear();
   }
+  if (counters.byUid.size > 5000) counters.byUid.clear(); // bellek tavanı (beta ölçeği çok üstü)
   if (counters.global >= globalMax) return 'global';
   const uidCount = counters.byUid.get(uid) || 0;
   if (uidCount >= uidMax) return 'uid';
@@ -46,6 +55,15 @@ function validatePerson(p, i) {
   for (const f of ['year', 'month', 'day', 'hour', 'minute', 'latitude', 'longitude']) {
     if (typeof p[f] !== 'number' || Number.isNaN(p[f])) errs.push(`people[${i}].${f} sayı olmalı`);
   }
+  if (typeof p.year === 'number' && (p.year < 1800 || p.year > 2400)) errs.push(`people[${i}].year 1800-2400 aralığında olmalı (efemeris kapsamı)`);
+  if (typeof p.month === 'number' && (p.month < 1 || p.month > 12)) errs.push(`people[${i}].month 1-12 olmalı`);
+  if (typeof p.day === 'number' && (p.day < 1 || p.day > 31)) errs.push(`people[${i}].day 1-31 olmalı`);
+  if (typeof p.hour === 'number' && (p.hour < 0 || p.hour > 23)) errs.push(`people[${i}].hour 0-23 olmalı`);
+  if (typeof p.minute === 'number' && (p.minute < 0 || p.minute > 59)) errs.push(`people[${i}].minute 0-59 olmalı`);
+  if (typeof p.latitude === 'number' && Math.abs(p.latitude) > 90) errs.push(`people[${i}].latitude -90..90 olmalı`);
+  if (typeof p.longitude === 'number' && Math.abs(p.longitude) > 180) errs.push(`people[${i}].longitude -180..180 olmalı`);
+  if (p.timezone && p.timezone.length > 64) errs.push(`people[${i}].timezone çok uzun`);
+  if (typeof p.label === 'string' && p.label.length > 120) errs.push(`people[${i}].label 120 karakteri aşamaz`);
   if (typeof p.timezone !== 'string' || !p.timezone.includes('/')) errs.push(`people[${i}].timezone IANA formatında olmalı`);
   if (p.isSelf !== undefined && typeof p.isSelf !== 'boolean') errs.push(`people[${i}].isSelf boolean olmalı`);
   return errs;
@@ -65,7 +83,7 @@ export function mountAgent(app, { provider } = {}) {
     if (!sharedKey) {
       return res.status(503).json({ code: 'AGENT-503-CONFIG', error: 'Agent yapılandırılmamış (AGENT_SHARED_KEY eksik)' });
     }
-    if (req.get('x-agent-key') !== sharedKey) {
+    if (!safeKeyCompare(req.get('x-agent-key'), sharedKey)) {
       const got = String(req.get('x-agent-key') || '(boş)');
       console.warn(`[AGENT-403-KEY] anahtar uyuşmazlığı (gelen: ${got.slice(0, 8)}… uzunluk=${got.length}, beklenen uzunluk=${sharedKey.length})`);
       return res.status(403).json({ code: 'AGENT-403-KEY', error: 'Yetkisiz' });
@@ -75,6 +93,9 @@ export function mountAgent(app, { provider } = {}) {
     const { uid, sessionId, message, people, history, locale } = req.body || {};
     const errors = [];
     if (typeof uid !== 'string' || !uid) errors.push('uid eksik');
+    if (typeof uid === 'string' && uid.length > 128) errors.push('uid 128 karakteri aşamaz');
+    if (sessionId !== undefined && (typeof sessionId !== 'string' || sessionId.length > 128)) errors.push('sessionId geçersiz');
+    if (locale !== undefined && !/^[a-zA-Z-]{2,10}$/.test(String(locale))) errors.push('locale geçersiz');
     if (typeof message !== 'string' || !message.trim()) errors.push('message eksik');
     if (typeof message === 'string' && message.length > MAX_MESSAGE_LEN) errors.push(`message ${MAX_MESSAGE_LEN} karakteri aşamaz`);
     if (people !== undefined) {

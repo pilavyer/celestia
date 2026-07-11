@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.1] - 2026-07-11
+
+### Security
+- Timing-safe X-Agent-Key comparison (`crypto.timingSafeEqual`).
+- `trust proxy` enabled so IP-based rate limiting sees real client IPs behind Render's load balancer.
+- Input hardening on `/api/agent/ask`: ephemeris-range year (1800-2400), calendar/coordinate bounds, timezone/label/uid/sessionId length caps, locale whitelist pattern, per-uid counter map memory ceiling. All rejections carry structured error codes; verified with adversarial request tests (5/5).
+
 ## [4.4.0] - 2026-07-11
 
 ### Added
