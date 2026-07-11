@@ -36,6 +36,32 @@ const PURPOSES = {
     ...BASE,
     moonHouse: { ...BASE.moonHouse, 9: 2, 3: 2 },
   },
+  tasinma: {
+    ...BASE,
+    moonHouse: { ...BASE.moonHouse, 4: 3, 2: 1 },
+    ascSign: { ...BASE.ascSign, Taurus: 2, Cancer: 2 },
+    vocPenalty: -6,
+  },
+  lansman: {
+    ...BASE,
+    hour: { ...BASE.hour, Sun: 3, Mercury: 3 },
+    moonHouse: { ...BASE.moonHouse, 10: 3, 1: 3, 11: 2 },
+    ascSign: { ...BASE.ascSign, Leo: 3 },
+    vocPenalty: -6,
+  },
+  'saglik-randevusu': {
+    ...BASE,
+    hour: { ...BASE.hour, Saturn: -3, Mars: -3, Jupiter: 3, Venus: 2 },
+    moonHouse: { ...BASE.moonHouse, 6: 1, 12: -3, 8: -2 },
+    vocPenalty: -7,
+  },
+  teklif: {
+    ...BASE,
+    hour: { ...BASE.hour, Venus: 3, Moon: 2 },
+    moonHouse: { ...BASE.moonHouse, 5: 3, 7: 3 },
+    ascSign: { ...BASE.ascSign, Libra: 2, Taurus: 2, Leo: 2 },
+    vocPenalty: -6,
+  },
 };
 
 const DOW_TR = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];

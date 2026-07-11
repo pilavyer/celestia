@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-07-11
+
+### Added
+- **Four new election purposes**: `tasinma` (move/new home), `lansman` (product/app/channel launch), `saglik-randevusu` (non-surgical health appointment; surgery-date selection explicitly refused and referred to a physician), `teklif` (marriage proposal) — each with its own weight set following the household methodology pattern. Doctrine purpose-mapping updated; verify-election extended (19 checks).
+- Doctrine: astro-themed content generation explicitly allowed (product decision — must be grounded in real tool data).
+
 ## [4.3.1] - 2026-07-11
 
 ### Changed

@@ -56,5 +56,21 @@ check('öneri notu retro uyarısı içeriyor', r.recommendation.note?.includes('
 check('her pencerede factors listesi var', r.dailyResults.every((d) => d.bestWindows.every((w) => Array.isArray(w.factors))));
 check('ranking uzunluğu = gün sayısı', r.ranking.length === 9);
 
+// Referans 5: yeni amaçlar çalışıyor ve farklılaşıyor
+console.log('— yeni amaç setleri —');
+const NATAL = { year: 1998, month: 11, day: 25, hour: 10, minute: 22,
+  latitude: 41.2867, longitude: 36.33, timezone: 'Europe/Istanbul',
+  startDate: '2026-07-13', days: 5 };
+const byPurpose = {};
+for (const p of ['lansman', 'tasinma', 'saglik-randevusu', 'teklif']) {
+  const rr = calculateElectionScan({ ...NATAL, purpose: p });
+  byPurpose[p] = rr;
+  check(`amaç '${p}' hatasız koşuyor ve sıralama dönüyor`, rr.ranking.length === 5 && rr.purpose === p);
+}
+check('amaç ağırlıkları gerçekten farklılaşıyor (lansman vs saglik zirve skorları farklı)',
+  JSON.stringify(byPurpose['lansman'].ranking.map(x=>x.topWindow?.score)) !==
+  JSON.stringify(byPurpose['saglik-randevusu'].ranking.map(x=>x.topWindow?.score)));
+check('geçersiz amaç reddediliyor', (()=>{ try { calculateElectionScan({ ...NATAL, purpose: 'yok-boyle-amac' }); return false; } catch { return true; } })());
+
 console.log(`\n========== Sonuç: ${pass} geçti, ${fail} kaldı ==========`);
 process.exit(fail === 0 ? 0 : 1);

@@ -77,7 +77,7 @@ export const TOOL_DECLARATIONS = [
         personId: { type: 'STRING' },
         startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
         days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-14)' },
-        purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | genel' },
+        purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | tasinma | lansman | saglik-randevusu | teklif | genel' },
       },
       required: ['personId', 'startDate', 'days'],
     },
@@ -161,7 +161,7 @@ const EXECUTORS = {
       ...chartParams(person),
       startDate: args.startDate,
       days: args.days,
-      purpose: ['is-gorusmesi', 'nikah', 'imza', 'seyahat', 'genel'].includes(args.purpose) ? args.purpose : 'genel',
+      purpose: ['is-gorusmesi', 'nikah', 'imza', 'seyahat', 'tasinma', 'lansman', 'saglik-randevusu', 'teklif', 'genel'].includes(args.purpose) ? args.purpose : 'genel',
     });
     // Kompakt görünüm: sıralama + gün başına en iyi pencere + uyarılar
     return {

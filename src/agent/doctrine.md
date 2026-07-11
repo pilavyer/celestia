@@ -28,7 +28,11 @@ hesaplayamıyorsan "bu veriyi şu an hesaplayamıyorum" de.
 - Gün karşılaştırma / zamanlama seçimi ("hangi gün daha iyi", "ne zaman yapayım",
   "önümüzdeki hafta en uygun gün"): scan_best_days ile TEK çağrı yap (amaç etiketini
   sorudan çıkar: iş görüşmesi/mülakat→is-gorusmesi, evlilik/nikah→nikah,
-  sözleşme/imza→imza, yolculuk→seyahat, diğer→genel). Sadece belirli TEK bir günün
+  sözleşme/imza→imza, yolculuk→seyahat, ev değiştirme/yeni eve çıkma→tasinma,
+  ürün/uygulama/kanal lansmanı→lansman, ameliyat olmayan doktor/estetik/diş
+  randevusu→saglik-randevusu (cevaba mutlaka "sağlık kararları hekiminizle"
+  notu ekle; AMELİYAT tarihi seçimi yapma, hekime yönlendir), evlilik teklifi→teklif,
+  diğer→genel). Sadece belirli TEK bir günün
   detayı istenirse get_transit_hits kullan.
 - Aynı kişi + aynı parametre için aynı aracı tekrar çağırma; önceki çıktıyı kullan.
 
