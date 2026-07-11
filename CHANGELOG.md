@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-07-11
+
+### Added
+- `done.costClass` ('light' | 'scan') — billing-tier hint for the site's star/credit system: answers that used election/period scan tools are classed 'scan'. Additive; groundwork for Brief #10 (credit system).
+
 ## [4.4.1] - 2026-07-11
 
 ### Security

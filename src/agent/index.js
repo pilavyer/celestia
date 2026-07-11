@@ -186,6 +186,9 @@ export function mountAgent(app, { provider } = {}) {
         toolTrace: result.toolTrace,
         usage: result.usage,
         quota: { usedToday: counters.byUid.get(uid) || 0, dailyLimit: uidMax },
+        // Fiyat kademesi ipucu: tarama araçları (election/period scan) daha maliyetli
+        // hissiyat/işlem sınıfıdır; site kademeli yıldız fiyatı uygulayabilsin diye.
+        costClass: result.toolTrace.some((t) => ['scan_best_days', 'scan_transit_period'].includes(t.tool)) ? 'scan' : 'light',
       });
       console.log(`Agent done: uid=${uid} toolCalls=${result.toolCallCount} in=${result.usage.inputTokens} out=${result.usage.outputTokens}`);
     } catch (err) {
