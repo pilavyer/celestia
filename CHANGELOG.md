@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.2] - 2026-07-12
+
+### Security
+- Internal-architecture leakage closed (beta finding): the bot mentioned "tools", "IDs" and engine names when explaining its limits. Doctrine now bans internal terminology in user-facing text (engine names moved to internal-only note in the identity section) and mandates user-language explanations of capability limits.
+
 ## [4.9.1] - 2026-07-12
 
 ### Changed
