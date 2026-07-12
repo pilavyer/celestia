@@ -84,6 +84,23 @@ export const TOOL_DECLARATIONS = [
     },
   },
   {
+    name: 'suggest_add_person',
+    description: 'SESSİZ SİNYAL ARACI (kullanıcıya görünmez): Kullanıcı, kayıtlı OLMAYAN bir kişi '
+      + 'hakkında analiz istediğinde ve sen kişinin Kişilerim\'e eklenmesini önerdiğinde bu aracı '
+      + 'da çağır — sitede "Kişi ekle" kısayolu belirir ve verdiğin bilgilerle form önceden dolar. '
+      + 'Kullanıcının mesajında geçen bilgileri aynen aktar; bilinmeyeni boş bırak, UYDURMA.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        name: { type: 'STRING', description: 'Kişinin adı (mesajda geçtiği haliyle)' },
+        date: { type: 'STRING', description: 'Doğum tarihi YYYY-MM-DD (mesajda varsa; "02.01.1998" -> "1998-01-02")' },
+        time: { type: 'STRING', description: 'Doğum saati HH:mm (mesajda varsa)' },
+        city: { type: 'STRING', description: 'Doğum şehri (mesajda varsa, metin olarak)' },
+      },
+      required: ['name'],
+    },
+  },
+  {
     name: 'get_synastry',
     description: 'İki kişi arasındaki ilişki analizi: uyum skoru, kilit çapraz açılar, kompozit '
       + 've Davison ilişki haritası özetleri. Uyum/ilişki soruları için.',
@@ -182,6 +199,11 @@ const EXECUTORS = {
         vocInfo: 'Ay-boşluğu cezaları pencere skorlarına dahil edilmiştir',
       },
     };
+  },
+
+  suggest_add_person({ args }) {
+    // Yürütme yok: sinyal orkestratörde yakalanıp done.action olarak siteye gider.
+    return { ok: true };
   },
 
   get_synastry({ args, peopleMap }) {

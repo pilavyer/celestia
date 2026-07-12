@@ -59,6 +59,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   let toolCallCount = 0;
   const toolTrace = [];
   const visuals = {};
+  let action;
   const HARMONIOUS = new Set(['Trine', 'Sextile']);
   const CHALLENGING = new Set(['Square', 'Opposition', 'Quincunx']);
   const usage = { inputTokens: 0, outputTokens: 0 };
@@ -83,7 +84,17 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     const responseParts = [];
     for (const fc of response.functionCalls) {
       toolCallCount++;
-      emit('status', { stage: 'tool', tool: fc.name, message: S.tool[fc.name] || S.tool._default });
+      if (fc.name === 'suggest_add_person') {
+        action = {
+          type: 'addPersonSuggested',
+          name: String(fc.args?.name || '').slice(0, 120) || undefined,
+          date: /^\d{4}-\d{2}-\d{2}$/.test(fc.args?.date || '') ? fc.args.date : undefined,
+          time: /^\d{2}:\d{2}$/.test(fc.args?.time || '') ? fc.args.time : undefined,
+          city: String(fc.args?.city || '').slice(0, 80) || undefined,
+        };
+      } else {
+        emit('status', { stage: 'tool', tool: fc.name, message: S.tool[fc.name] || S.tool._default });
+      }
       const result = executeTool(fc, { peopleMap, today });
       if (result?.error) console.warn(`[AGENT-TOOL-FAIL] ${fc.name}:`, result.error);
       // Görsel panel verisi: site, açı listesini natal sayfası bileşeniyle çizer
@@ -125,5 +136,5 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   const text = response.text || '';
   // Streaming desteklemeyen provider'lar (ör. test mock'u) için geri-uyum:
   if (streamedChars === 0 && text) emit('delta', { text });
-  return { text, toolCallCount, toolTrace, usage, streamedChars, visuals };
+  return { text, toolCallCount, toolTrace, usage, streamedChars, visuals, action };
 }

@@ -19,7 +19,7 @@ const peopleMap = new Map(PEOPLE.map((p) => [p.id, p]));
 
 console.log('— 1) Doktrin ve araç tanımları —');
 check('doktrin yüklendi', DOCTRINE.includes('MUTLAK KURAL'));
-check('5 araç tanımlı', TOOL_DECLARATIONS.length === 5);
+check('6 araç tanımlı', TOOL_DECLARATIONS.length === 6);
 check('şema formatı Gemini uyumlu (OBJECT)', TOOL_DECLARATIONS.every((t) => t.parameters.type === 'OBJECT'));
 
 console.log('— 2) Araç yürütücüleri (gerçek hesap, bilinen değerler) —');
