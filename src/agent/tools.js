@@ -162,6 +162,7 @@ const EXECUTORS = {
     return {
       person: person.label,
       targetDate,
+      polarHousesUnstable: Math.abs(person.latitude) > 66.5,
       chart: compactChart(chart),
       ...compactEnrichment({ arabicParts, fixedStars, firdaria, profections }),
     };

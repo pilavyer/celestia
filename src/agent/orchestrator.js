@@ -130,6 +130,10 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
           stelliums: c.stelliums,
           tightAspects: c.tightAspects,
           chartRuler: c.chartRuler,
+          houseSystem: 'Placidus',
+          // Kutupta (|enlem|>66.5) site Whole Sign'a düşer; SVG çember benim
+          // Placidus ev-numaralarımla çelişebilir -> site çemberi atlasın.
+          polarHousesUnstable: result.polarHousesUnstable || undefined,
         };
       }
       if (!result?.error && fc.name === 'scan_best_days' && Array.isArray(result.ranking)) {

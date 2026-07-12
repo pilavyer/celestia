@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.1] - 2026-07-12
+
+### Fixed
+- `visuals.natalChart` now carries `houseSystem: 'Placidus'` and `polarHousesUnstable: true` for births above |66.5°| latitude — where the site's chart endpoint falls back to Whole Sign while get_natal_profile keeps Placidus, so house numbers would disagree with the SVG wheel. The site skips the wheel (keeps the consistent text summary) when the flag is set. Verified: normal latitude → no flag, 78°N → flag set.
+
 ## [4.12.0] - 2026-07-12
 
 ### Added
