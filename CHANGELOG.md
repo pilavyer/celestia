@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Person-add guidance: the bot was inventing manual UI steps ("go to My People menu, tap New Person, step 1-2-3") — it can't see the site chrome. Doctrine now points only to the contextual "Add person" card that appears under the answer (data prefilled via done.action); no fabricated menu navigation.
 
+## [4.12.3] - 2026-07-12
+
+### Fixed
+- Person-add guidance actually applied (4.12.2 was a silent no-op due to anchor mismatch): bot points only to the contextual "Add person" button, no invented menu steps.
+
+## [4.13.0] - 2026-07-12
+
+### Fixed
+- Follow-up suggestion quality: enforced first-person user-voice, content-specific questions directed at the bot (no bot-asks-user phrasing, no clichés).
+
 ## [4.12.1] - 2026-07-12
 
 ### Fixed
