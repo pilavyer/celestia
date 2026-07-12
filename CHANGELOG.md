@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0] - 2026-07-12
+
+### Added
+- **`done.visuals.natalChart`** — structured birth-chart data for the site's natal-wheel component inside chat: planets (sign/deg/house/retro), ascendant, midheaven, full element & modality counts, stelliums, chart ruler, and tight natal aspects (≤3° orb, nature-tagged). Emitted whenever get_natal_profile runs; the site can render it inline on person-add and behind a "Show chart" toggle otherwise.
+- **Atmospheric status messages** (all 6 locales): "Reading your sky chart…", "Comparing today's sky with your chart…", "Interpreting what the stars say…" etc. — premium feel while staying honest (no false real-time-NASA claims).
+
 ## [4.11.1] - 2026-07-12
 
 ### Security (critical — beta finding)

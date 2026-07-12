@@ -118,6 +118,20 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
           })),
         };
       }
+      if (!result?.error && fc.name === 'get_natal_profile' && result.chart) {
+        const c = result.chart;
+        visuals.natalChart = {
+          person: result.person,
+          planets: c.planets,
+          ascendant: c.ascendant,
+          midheaven: c.midheaven,
+          elements: c.elementCounts,
+          modalities: c.modalityCounts,
+          stelliums: c.stelliums,
+          tightAspects: c.tightAspects,
+          chartRuler: c.chartRuler,
+        };
+      }
       if (!result?.error && fc.name === 'scan_best_days' && Array.isArray(result.ranking)) {
         visuals.bestDays = {
           person: result.person, purpose: result.purpose,

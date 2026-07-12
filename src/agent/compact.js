@@ -3,6 +3,9 @@
 // Full REST responses are large; the agent only needs the interpretive signal.
 
 const r1 = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
+const HARMONIOUS_ASP = new Set(['Trine', 'Sextile']);
+const CHALLENGING_ASP = new Set(['Square', 'Opposition', 'Quincunx']);
+const aspNature = (t) => (HARMONIOUS_ASP.has(t) ? 'harmonious' : CHALLENGING_ASP.has(t) ? 'challenging' : 'neutral');
 
 const CORE_PLANETS = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
@@ -27,6 +30,18 @@ export function compactChart(chart) {
     moonPhase: chart.analysis?.moonPhase?.phase,
     dominantElement: chart.analysis?.elements?.dominant,
     dominantModality: chart.analysis?.modalities?.dominant,
+    elementCounts: chart.analysis?.elements
+      ? { fire: chart.analysis.elements.Fire, earth: chart.analysis.elements.Earth,
+          air: chart.analysis.elements.Air, water: chart.analysis.elements.Water } : undefined,
+    modalityCounts: chart.analysis?.modalities
+      ? { cardinal: chart.analysis.modalities.Cardinal, fixed: chart.analysis.modalities.Fixed,
+          mutable: chart.analysis.modalities.Mutable } : undefined,
+    tightAspects: (chart.aspects || [])
+      .filter((a) => a.orb <= 3)
+      .sort((a, b) => a.orb - b.orb)
+      .slice(0, 12)
+      .map((a) => ({ p1: a.planet1, aspect: a.type, p2: a.planet2, orb: r1(a.orb),
+        exact: a.orb < 1 || undefined, nature: aspNature(a.type) })),
     stelliums: chart.analysis?.stelliums?.map((s) => `${s.sign}: ${s.planets.join('+')}`),
     chartRuler: chart.analysis?.chartRuler?.planet,
   };
