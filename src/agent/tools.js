@@ -101,6 +101,20 @@ export const TOOL_DECLARATIONS = [
     },
   },
   {
+    name: 'suggest_followups',
+    description: 'SESSİZ SİNYAL ARACI (kullanıcıya görünmez): Astrolojik analiz içeren her '
+      + 'cevabından hemen ÖNCE çağır — kullanıcının doğal olarak soracağı 2-3 KISA takip '
+      + 'sorusunu ilet (kullanıcının dilinde, her biri ≤60 karakter, cevabın içeriğine özgü). '
+      + 'Selamlaşma/red/kısa bilgi cevaplarında çağırma.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        questions: { type: 'ARRAY', items: { type: 'STRING' }, description: '2-3 kısa takip sorusu' },
+      },
+      required: ['questions'],
+    },
+  },
+  {
     name: 'get_synastry',
     description: 'İki kişi arasındaki ilişki analizi: uyum skoru, kilit çapraz açılar, kompozit '
       + 've Davison ilişki haritası özetleri. Uyum/ilişki soruları için.',
@@ -199,6 +213,10 @@ const EXECUTORS = {
         vocInfo: 'Ay-boşluğu cezaları pencere skorlarına dahil edilmiştir',
       },
     };
+  },
+
+  suggest_followups({ args }) {
+    return { ok: true };
   },
 
   suggest_add_person({ args }) {

@@ -60,6 +60,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   const toolTrace = [];
   const visuals = {};
   let action;
+  let suggestions;
   const HARMONIOUS = new Set(['Trine', 'Sextile']);
   const CHALLENGING = new Set(['Square', 'Opposition', 'Quincunx']);
   const usage = { inputTokens: 0, outputTokens: 0 };
@@ -84,7 +85,12 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
     const responseParts = [];
     for (const fc of response.functionCalls) {
       toolCallCount++;
-      if (fc.name === 'suggest_add_person') {
+      if (fc.name === 'suggest_followups') {
+        const qs = Array.isArray(fc.args?.questions) ? fc.args.questions : [];
+        suggestions = qs.filter((q) => typeof q === 'string' && q.trim())
+          .map((q) => q.trim().slice(0, 80)).slice(0, 3);
+        if (!suggestions.length) suggestions = undefined;
+      } else if (fc.name === 'suggest_add_person') {
         action = {
           type: 'addPersonSuggested',
           name: String(fc.args?.name || '').slice(0, 120) || undefined,
@@ -136,5 +142,5 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
   const text = response.text || '';
   // Streaming desteklemeyen provider'lar (ör. test mock'u) için geri-uyum:
   if (streamedChars === 0 && text) emit('delta', { text });
-  return { text, toolCallCount, toolTrace, usage, streamedChars, visuals, action };
+  return { text, toolCallCount, toolTrace, usage, streamedChars, visuals, action, suggestions };
 }

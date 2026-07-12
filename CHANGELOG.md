@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0] - 2026-07-12
+
+### Added
+- **`done.suggestions`** (≤3 short strings) via silent `suggest_followups` tool: contextual follow-up questions generated per answer in the user's language (validated/capped server-side; skipped on greetings/refusals). Completes the follow-up-chips backlog with real contextual content instead of static rules.
+
 ## [4.10.0] - 2026-07-12
 
 ### Added

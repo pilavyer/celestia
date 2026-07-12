@@ -197,6 +197,7 @@ export function mountAgent(app, { provider } = {}) {
         quota: { usedToday: counters.byUid.get(uid) || 0, dailyLimit: uidMax },
         visuals: Object.keys(result.visuals || {}).length ? result.visuals : undefined,
         action: result.action,
+        suggestions: result.suggestions,
         // Fiyat kademesi ipucu: tarama araçları (election/period scan) daha maliyetli
         // hissiyat/işlem sınıfıdır; site kademeli yıldız fiyatı uygulayabilsin diye.
         costClass: result.toolTrace.some((t) => ['scan_best_days', 'scan_transit_period'].includes(t.tool)) ? 'scan' : 'light',
