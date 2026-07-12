@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.1] - 2026-07-12
+
+### Security (critical — beta finding)
+- **Fabrication-under-pressure closed**: on repeated insistence ("just look without adding"), the model would eventually invent a full natal chart for an UNREGISTERED person (violating the core "numbers only from tools" rule). Doctrine now enforces a hard tool-precondition (no astrological claim about a person without a real tool call first; tools only callable for registered people) plus an explicit insist-resistance clause ("never say 'I found the record', hold the line every time"). Verified: 3x insistence now resists on all three turns.
+
 ## [4.11.0] - 2026-07-12
 
 ### Added
