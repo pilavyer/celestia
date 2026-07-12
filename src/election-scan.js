@@ -95,6 +95,7 @@ function moonAspect(moonLon, targetLon, orb = 2.5) {
  * @param {string} [params.eventTimezone]
  * @param {number} [params.startHour=8] @param {number} [params.endHour=18]
  * @param {number} [params.stepMinutes=20]
+ * @param {boolean} [params.weekendsOnly=false] - Sadece Cumartesi/Pazar günlerini tara
  */
 export function calculateElectionScan(params) {
   const {
@@ -102,6 +103,7 @@ export function calculateElectionScan(params) {
     startDate, purpose = 'genel',
     eventLatitude = latitude, eventLongitude = longitude, eventTimezone = timezone,
     startHour = 8, endHour = 18, stepMinutes = 20,
+    weekendsOnly = false,
   } = params;
   const days = Math.max(1, Math.min(31, Math.round(Number(params.days) || 30)));
 
@@ -135,6 +137,7 @@ export function calculateElectionScan(params) {
     const dt = new Date(Date.UTC(sy, sm - 1, sd + d));
     const dy = dt.getUTCFullYear(); const dm = dt.getUTCMonth() + 1; const dd = dt.getUTCDate();
     const dateStr = `${dy}-${String(dm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    if (weekendsOnly && dt.getUTCDay() !== 0 && dt.getUTCDay() !== 6) continue;
 
     const windows = [];
     const vocWindows = new Set();
@@ -234,6 +237,7 @@ export function calculateElectionScan(params) {
     purpose,
     startDate,
     days,
+    weekendsOnly: weekendsOnly || undefined,
     eventLocation: { latitude: eventLatitude, longitude: eventLongitude, timezone: eventTimezone },
     dailyResults: results,
     ranking: ranked.map((r) => ({ date: r.date, dayOfWeek: r.dayOfWeek, avgScore: r.avgScore, topWindow: r.bestWindows[0] })),

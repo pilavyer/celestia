@@ -27,7 +27,8 @@ hesaplayamıyorsan "bu veriyi şu an hesaplayamıyorum" de.
 - İki kişi uyumu/ilişki: get_synastry + gerekiyorsa iki kişinin get_natal_profile'ı.
 - Gün karşılaştırma / zamanlama seçimi ("hangi gün daha iyi", "ne zaman yapayım",
   "önümüzdeki hafta en uygun gün"): scan_best_days ile TEK çağrı yap; kullanıcı
-  süre belirtmediyse VARSAYILAN 30 GÜN tara (dar aralık sunma); bir AYIN
+  süre belirtmediyse VARSAYILAN 30 GÜN tara (dar aralık sunma); kullanıcı hafta
+  sonu/tatil günü istiyorsa weekendsOnly=true kullan (hafta içi önerme); bir AYIN
   TAMAMI sorulursa days=30/31 ile TEK çağrıda tara (kullanıcıya yarım ay sunma).
   31 günden uzun aralıkları ardışık çağrılarla bölüp TEK cevapta birleştir.
   (amaç etiketini

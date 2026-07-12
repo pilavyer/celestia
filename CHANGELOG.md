@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2026-07-12
+
+### Added
+- **Weekend filter** (`weekendsOnly`) on election scans — engine, tool param and doctrine: "hafta sonu tatil" questions now scan Saturdays/Sundays only (weekday days no longer appear in weekend answers or day chips).
+- **Richer day chips**: `visuals.bestDays.items[]` now carry `factors` (top-3 human-readable scoring factors) and `isWeekend` — the site can render "why this day" subtitles and weekend badges.
+
+### Known gap (backlog)
+- Factor label strings are Turkish-only (engine-side); factor i18n planned if EN usage grows.
+
 ## [4.8.1] - 2026-07-11
 
 ### Fixed

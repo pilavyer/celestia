@@ -78,6 +78,7 @@ export const TOOL_DECLARATIONS = [
         startDate: { type: 'STRING', description: 'YYYY-MM-DD' },
         days: { type: 'NUMBER', description: 'Taranacak gün sayısı (1-31). Verilmezse 30 gün taranır; kullanıcı belirli bir aralık söylemediyse boş bırak.' },
         purpose: { type: 'STRING', description: 'is-gorusmesi | nikah | imza | seyahat | tasinma | lansman | saglik-randevusu | teklif | genel' },
+        weekendsOnly: { type: 'BOOLEAN', description: 'Kullanıcı hafta sonu/tatil günü istiyorsa true: yalnız Cumartesi+Pazar taranır' },
       },
       required: ['personId', 'startDate'],
     },
@@ -162,6 +163,7 @@ const EXECUTORS = {
       startDate: args.startDate,
       days: args.days,
       purpose: ['is-gorusmesi', 'nikah', 'imza', 'seyahat', 'tasinma', 'lansman', 'saglik-randevusu', 'teklif', 'genel'].includes(args.purpose) ? args.purpose : 'genel',
+      weekendsOnly: args.weekendsOnly === true,
     });
     // Kompakt görünüm: sıralama + gün başına en iyi pencere + uyarılar
     return {

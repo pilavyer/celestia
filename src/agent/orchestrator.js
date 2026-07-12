@@ -104,9 +104,14 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
       if (!result?.error && fc.name === 'scan_best_days' && Array.isArray(result.ranking)) {
         visuals.bestDays = {
           person: result.person, purpose: result.purpose,
-          items: result.ranking.slice(0, 7).map((x) => ({
-            date: x.date, day: x.day, bestTime: x.bestTime, avgScore: x.avgScore,
-          })),
+          items: result.ranking.slice(0, 7).map((x) => {
+            const dow = new Date(`${x.date}T00:00:00Z`).getUTCDay();
+            return {
+              date: x.date, day: x.day, bestTime: x.bestTime, avgScore: x.avgScore,
+              isWeekend: (dow === 0 || dow === 6) || undefined,
+              factors: (x.keyFactors || []).slice(0, 3),
+            };
+          }),
         };
       }
       toolTrace.push({ tool: fc.name, args: fc.args, ok: !result?.error });
