@@ -103,8 +103,13 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'suggest_followups',
     description: 'SESSİZ SİNYAL ARACI (kullanıcıya görünmez): Astrolojik analiz içeren her '
-      + 'cevabından hemen ÖNCE çağır — kullanıcının doğal olarak soracağı 2-3 KISA takip '
-      + 'sorusunu ilet (kullanıcının dilinde, her biri ≤60 karakter, cevabın içeriğine özgü). '
+      + 'cevabından hemen ÖNCE çağır — KULLANICININ SANA soracağı 2-3 doğal takip sorusu ilet. '
+      + 'PERSPEKTİF: sorular kullanıcının ağzından, SANA yöneltilmiş olmalı (birinci tekil: '
+      + '"...benim için...", "...mı?", "...nasıl?"). ASLA botun kullanıcıya sorduğu bir soru '
+      + 'yazma ("planın var mı?", "ister misin?" YASAK). Cevabın içeriğine ÖZGÜ ve spesifik: '
+      + 'imza/retro geçtiyse "Bu retroda imza atsam sorun olur mu?", gün önerdiysen '
+      + '"O gün için saat önerin ne?", karakter anlattıysan "Aşk hayatımda ne bekliyor?". '
+      + 'Genel/klişe soru üretme. Her biri kullanıcının dilinde, ≤60 karakter. '
       + 'Selamlaşma/red/kısa bilgi cevaplarında çağırma.',
     parameters: {
       type: 'OBJECT',
