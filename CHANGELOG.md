@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Person-add guidance actually applied (4.12.2 was a silent no-op due to anchor mismatch): bot points only to the contextual "Add person" button, no invented menu steps.
 
+## [4.14.1] - 2026-07-13
+
+### Added
+- `visuals.aspects.items[].transitingNatalHouse` — the transit planet's current natal-house number, so the site's aspect panel can render "t.Mars (4th house)". Optional field.
+
 ## [4.14.0] - 2026-07-13
 
 ### Added

@@ -112,6 +112,7 @@ export async function runAgentTurn({ provider, request, emit, maxToolCalls = 8 }
             // transiting temiz gezegen adı; retro ayrı boolean (glif eşlemesi için)
             transiting: String(h.transiting).replace(' ℞', ''),
             retro: String(h.transiting).includes('℞') || undefined,
+            transitingNatalHouse: h.transitingNatalHouse,
             aspect: h.aspect, natalPoint: h.natalPoint,
             orb: h.orb, exact: !!h.exact,
             nature: HARMONIOUS.has(h.aspect) ? 'harmonious' : CHALLENGING.has(h.aspect) ? 'challenging' : 'neutral',
