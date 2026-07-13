@@ -6,6 +6,7 @@
 import { calculateNatalChart } from './calculator.js';
 import { calculateCrossAspects } from './aspects.js';
 import { calculateVoidOfCourseMoon } from './transit.js';
+import { findPlanetInHouse } from './utils.js';
 
 const TRANSIT_BODIES = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
@@ -70,9 +71,17 @@ export function calculateTransitHits(params) {
     latitude, longitude, timezone, houseSystem,
   });
 
+  // Natal ev sınırları — transit gezegenin natal haritada hangi eve düştüğü için
+  const natalCusps = [0];
+  for (const c of natal.houses.cusps) natalCusps[c.house] = c.cusp;
+
   const transitBodies = transitChart.planets
     .filter((p) => TRANSIT_BODIES.includes(p.name))
-    .map((p) => ({ name: p.name, longitude: p.longitude, isRetrograde: p.isRetrograde }));
+    .map((p) => ({
+      name: p.name, longitude: p.longitude, isRetrograde: p.isRetrograde,
+      sign: p.sign,
+      natalHouse: findPlanetInHouse(p.longitude, natalCusps),
+    }));
 
   const natalTargets = natal.planets
     .filter((p) => NATAL_TARGET_BODIES.includes(p.name))
@@ -87,10 +96,12 @@ export function calculateTransitHits(params) {
 
   const retroByName = new Map(transitBodies.map((b) => [b.name, b.isRetrograde]));
 
+  const houseByName = new Map(transitBodies.map((b) => [b.name, b.natalHouse]));
   const hits = calculateCrossAspects(transitBodies, natalTargets, { orbScale })
     .map((a) => ({
       transitPlanet: a.planet1,
       isRetrograde: retroByName.get(a.planet1) ?? false,
+      transitPlanetNatalHouse: houseByName.get(a.planet1),
       type: a.type,
       symbol: a.symbol,
       natalPoint: a.planet2,
@@ -113,6 +124,9 @@ export function calculateTransitHits(params) {
       utcTime: transitChart.input?.utcTime,
     },
     transits: hits,
+    transitPlanets: transitBodies.map((b) => ({
+      name: b.name, sign: b.sign, natalHouse: b.natalHouse, retro: b.isRetrograde || undefined,
+    })),
     lunar: {
       moonSign: moon?.sign,
       moonLongitude: moon?.longitude,

@@ -80,11 +80,15 @@ export function compactTransitHits(result, maxHits = 20) {
     moment: result.transitMoment,
     hits: result.transits.slice(0, maxHits).map((h) => ({
       transiting: h.transitPlanet + (h.isRetrograde ? ' ℞' : ''),
+      transitingNatalHouse: h.transitPlanetNatalHouse,
       aspect: h.type,
       natalPoint: h.natalPoint,
       orb: r1(h.orb),
       exact: h.isExact || undefined,
       applying: h.isApplying || undefined,
+    })),
+    transitPlanets: (result.transitPlanets || []).map((p) => ({
+      planet: p.name, sign: p.sign, natalHouse: p.natalHouse, retro: p.retro,
     })),
     moon: {
       sign: result.lunar.moonSign,

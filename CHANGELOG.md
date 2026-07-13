@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Person-add guidance actually applied (4.12.2 was a silent no-op due to anchor mismatch): bot points only to the contextual "Add person" button, no invented menu steps.
 
+## [4.14.0] - 2026-07-13
+
+### Added
+- **Transit planets' natal-house placement** in `get_transit_hits`: each transit body now carries which natal house it currently occupies (`transitPlanets[].natalHouse`, and `transitingNatalHouse` per aspect), computed from the natal cusps. Closes a fabrication gap — the bot was stating "transit Mars in your 5th house" without tool data (it was actually the 4th). Doctrine rule 8 now requires house claims to come only from this field.
+
 ## [4.13.0] - 2026-07-12
 
 ### Fixed
